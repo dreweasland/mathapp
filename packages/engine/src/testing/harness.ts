@@ -32,7 +32,10 @@ export function assertValid(p: Problem, skillId: string, allowed: readonly Quest
     expect(values.length, where).toBeGreaterThanOrEqual(2);
     expect(values.length, where).toBeLessThanOrEqual(4);
     expect(new Set(values).size, where).toBe(values.length);
-    expect(values.filter((v) => v === p.answer), where).toHaveLength(1);
+    expect(
+      values.filter((v) => v === p.answer),
+      where,
+    ).toHaveLength(1);
   }
   if (p.questionType === 'number-line') {
     const line = p.numberLine;

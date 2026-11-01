@@ -7,9 +7,13 @@ export function classifyError(problem: Problem, given: string): ErrorType {
   const tagged = problem.choices?.find((c) => c.value === given);
   if (tagged?.errorType) return tagged.errorType;
   const value = Number(given);
-  if (problem.operands.kind === 'arith' && Number.isFinite(value)) {
-    const { op, a, b } = problem.operands;
-    return arithCandidates(op, a, b).find((c) => c.value === value)?.errorType ?? 'other';
+  const o = problem.operands;
+  if (o.kind === 'arith' && Number.isFinite(value)) {
+    return arithCandidates(o.op, o.a, o.b).find((c) => c.value === value)?.errorType ?? 'other';
+  }
+  if (o.kind === 'missing-addend' && Number.isFinite(value)) {
+    const candidates = arithCandidates('sub', o.whole, o.known);
+    return candidates.find((c) => c.value === value)?.errorType ?? 'other';
   }
   const answer = Number(problem.answer);
   if (Number.isFinite(value) && Number.isFinite(answer) && Math.abs(value - answer) === 1) {

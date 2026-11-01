@@ -12,13 +12,7 @@ export type QuestionType =
   | 'clock-face';
 
 export type ShapeName =
-  | 'circle'
-  | 'square'
-  | 'triangle'
-  | 'rectangle'
-  | 'hexagon'
-  | 'trapezoid'
-  | 'rhombus';
+  'circle' | 'square' | 'triangle' | 'rectangle' | 'hexagon' | 'trapezoid' | 'rhombus';
 
 /**
  * The math behind a problem, as data. The audit recomputes every answer from this in
