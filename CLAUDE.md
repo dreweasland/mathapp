@@ -56,6 +56,9 @@ Agreed with the parent before Phase 0.
 - **Shields:** used only if they can save the streak; otherwise they are kept. Shielded days preserve the streak without adding to it. Max 2 banked.
 - **Perfect Week:** Monday to Sunday. Parent-granted days count, automatic shield days do not.
 - **`compare` question type:** replaces "true/false compare" and has a third "same" answer.
+- **Warm-up order:** only skills already taught (started, placed out, or mastered) feed the warm-up, so a skill is never drilled before its worked example.
+- **Mastery pace:** all-fast answers earn a badge at 15 attempts, all-slow-but-correct at 18. Each skill has its own `fastMs`; the 3-second bar is for within-10 facts.
+- **Time budget beats problem count:** slow skills (word problems) get fewer problems, down to 8, to protect the 5–8 minutes.
 - **Profiles:** tap your avatar, no picture password. Theme: animals.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
 
