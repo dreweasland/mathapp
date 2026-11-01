@@ -113,9 +113,13 @@ export interface Streak {
   best: number;
   lastCountedDate?: LocalDate;
   shields: number;
+  /** How many of `shields` a parent granted; those days count toward a Perfect Week. */
+  parentShields: number;
+  /** Missed days up to here are settled, so reopening the app can't spend a shield twice. */
+  coveredThrough?: LocalDate;
   /** Days a quest was done, kept for the current and previous week. */
   countedDates: LocalDate[];
-  /** Days a parent excused; these count toward a Perfect Week. */
+  /** Days covered by a parent-granted shield. */
   excusedDates: LocalDate[];
   /** Monday of each Perfect Week. */
   perfectWeeks: LocalDate[];
