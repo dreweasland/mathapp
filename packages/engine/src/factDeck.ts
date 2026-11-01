@@ -1,5 +1,6 @@
 import { addDays } from './dates';
 import { allFacts, factSkill, type Fact } from './facts';
+import type { Rng } from './rng';
 import type { FactCard, LocalDate } from './state';
 
 /** Days until due, indexed by box. */
@@ -12,7 +13,7 @@ export function newFactCard(childId: string, factId: string, today: LocalDate): 
   return { childId, factId, box: 0, dueDate: today, history: [], updatedAt: 0 };
 }
 
-/** Facts the child can be drilled on: those of skills they have reached. */
+/** Facts belonging to these skills. Pass only skills the child has already been taught. */
 export function unlockedFacts(unlockedSkillIds: Iterable<string>): Fact[] {
   const skills = new Set(unlockedSkillIds);
   return allFacts().filter((fact) => skills.has(factSkill(fact)));
@@ -60,12 +61,21 @@ export function fluencyStatus(card: FactCard | undefined): FluencyStatus {
 /** At most this many never-seen cards a day, so a child isn't flooded. */
 export const NEW_CARDS_PER_DAY = 3;
 
-/** Due cards first (oldest first, then lowest box), then a few new ones. */
+const easeTier = (fact: Fact): number => {
+  const total = fact.op === 'add' ? fact.a + fact.b : fact.a;
+  return total <= 5 ? 0 : total <= 10 ? 1 : 2;
+};
+
+/**
+ * Due cards first (oldest first, then lowest box), then a few new ones: easier sums before
+ * harder, shuffled within each tier so a child doesn't get 0+0, 0+1, 0+2 in a row.
+ */
 export function selectWarmupFacts(
   cards: FactCard[],
   unlocked: Fact[],
   today: LocalDate,
   count: number,
+  rng: Rng,
 ): string[] {
   const reachable = new Set(unlocked.map((f) => f.id));
   const due = cards
@@ -77,8 +87,9 @@ export function selectWarmupFacts(
     .map((c) => c.factId);
   const known = new Set(cards.map((c) => c.factId));
   const room = Math.max(0, count - due.length);
-  const fresh = unlocked
-    .filter((f) => !known.has(f.id))
+  const fresh = rng
+    .shuffle(unlocked.filter((f) => !known.has(f.id)))
+    .sort((a, b) => easeTier(a) - easeTier(b))
     .slice(0, Math.min(room, due.length === 0 ? count : NEW_CARDS_PER_DAY))
     .map((f) => f.id);
   return [...due.slice(0, count), ...fresh];

@@ -9,6 +9,8 @@ import {
   selectWarmupFacts,
   unlockedFacts,
 } from './factDeck';
+import type { Fact } from './facts';
+import { mulberry32 } from './rng';
 import type { FactCard } from './state';
 
 const TODAY = '2026-11-01';
@@ -18,6 +20,12 @@ const card = (over: Partial<FactCard> = {}): FactCard => ({
 });
 const review = (c: FactCard, correct: boolean, responseMs: number) =>
   reviewCard(c, { correct, responseMs, today: TODAY, at: 1 });
+const sum = (id: string) =>
+  id
+    .slice(4)
+    .split('+')
+    .map(Number)
+    .reduce((x, y) => x + y);
 const history = (quick: number, of: number): FactCard['history'] =>
   Array.from({ length: of }, (_, i) => ({
     at: i,
@@ -97,6 +105,9 @@ describe('fluency', () => {
   });
 });
 
+const warmup = (...args: [FactCard[], Fact[], string, number]) =>
+  selectWarmupFacts(...args, mulberry32(5));
+
 describe('selectWarmupFacts', () => {
   const add10 = unlockedFacts(['1.add-within-10']);
   const row = (factId: string, dueDate: string, box: FactCard['box'] = 1) =>
@@ -107,10 +118,10 @@ describe('selectWarmupFacts', () => {
     expect(unlockedFacts(['1.counting'])).toHaveLength(0);
   });
   it('fills an empty deck with new cards on day 1', () => {
-    expect(selectWarmupFacts([], add10, TODAY, 7)).toHaveLength(7);
+    expect(warmup([], add10, TODAY, 7)).toHaveLength(7);
   });
   it('due cards come before new ones', () => {
-    const out = selectWarmupFacts([row('add:3+4', TODAY)], add10, TODAY, 7);
+    const out = warmup([row('add:3+4', TODAY)], add10, TODAY, 7);
     expect(out[0]).toBe('add:3+4');
   });
   it('oldest due goes first, then the lowest box', () => {
@@ -119,29 +130,37 @@ describe('selectWarmupFacts', () => {
       row('add:2+2', '2026-10-29', 3),
       row('add:3+3', '2026-10-30', 1),
     ];
-    expect(selectWarmupFacts(cards, add10, TODAY, 3)).toEqual(['add:2+2', 'add:3+3', 'add:1+1']);
+    expect(warmup(cards, add10, TODAY, 3)).toEqual(['add:2+2', 'add:3+3', 'add:1+1']);
   });
   it('skips cards not yet due', () => {
-    const out = selectWarmupFacts([row('add:3+4', '2026-11-05')], add10, TODAY, 2);
+    const out = warmup([row('add:3+4', '2026-11-05')], add10, TODAY, 2);
     expect(out).not.toContain('add:3+4');
   });
   it('never returns more than asked', () => {
     const cards = add10.slice(0, 20).map((f) => row(f.id, TODAY));
-    expect(selectWarmupFacts(cards, add10, TODAY, 7)).toHaveLength(7);
+    expect(warmup(cards, add10, TODAY, 7)).toHaveLength(7);
   });
   it('tops up with at most 3 new cards once a deck exists', () => {
     const cards = [row('add:0+0', TODAY)];
-    const out = selectWarmupFacts(cards, add10, TODAY, 8);
+    const out = warmup(cards, add10, TODAY, 8);
     expect(out).toHaveLength(1 + NEW_CARDS_PER_DAY);
   });
   it('never repeats a fact', () => {
-    const out = selectWarmupFacts([row('add:0+0', TODAY)], add10, TODAY, 8);
+    const out = warmup([row('add:0+0', TODAY)], add10, TODAY, 8);
     expect(new Set(out).size).toBe(out.length);
   });
   it('leaves out a due card whose skill is out of reach', () => {
-    expect(selectWarmupFacts([row('sub:9-3', TODAY)], add10, TODAY, 1)).not.toContain('sub:9-3');
+    expect(warmup([row('sub:9-3', TODAY)], add10, TODAY, 1)).not.toContain('sub:9-3');
+  });
+  it('new cards start with the easier sums', () => {
+    const out = warmup([], add10, TODAY, 7);
+    for (const id of out) expect(sum(id)).toBeLessThanOrEqual(5);
+  });
+  it('new cards are not a run of zeros', () => {
+    const out = warmup([], add10, TODAY, 7);
+    expect(out.filter((id) => id.startsWith('add:0+')).length).toBeLessThan(5);
   });
   it('returns nothing with no reachable facts', () => {
-    expect(selectWarmupFacts([], [], TODAY, 7)).toEqual([]);
+    expect(warmup([], [], TODAY, 7)).toEqual([]);
   });
 });

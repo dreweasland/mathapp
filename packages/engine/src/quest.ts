@@ -101,13 +101,21 @@ export function factProblem(factId: string, rng: Rng): Problem {
   });
 }
 
+/** Taught already. A skill that's merely open hasn't been shown to the child yet. */
+const hasStarted = (states: SkillStates, skill: SkillDef): boolean => {
+  const state = states[skill.id];
+  return (state?.attempts ?? 0) > 0 || state?.placedOut === true || state?.masteredAt !== undefined;
+};
+
 function warmupSection(input: QuestInput, unlocked: SkillDef[], count: number, rng: Rng) {
-  const facts = unlockedFacts(unlocked.filter((s) => s.factBased).map((s) => s.id));
-  const items: QuestItem[] = selectWarmupFacts(input.factCards, facts, input.today, count).map(
+  // Never drill a skill before its worked example has taught it.
+  const taught = unlocked.filter((s) => hasStarted(input.states, s));
+  const facts = unlockedFacts(taught.filter((s) => s.factBased).map((s) => s.id));
+  const items: QuestItem[] = selectWarmupFacts(input.factCards, facts, input.today, count, rng).map(
     (id) => ({ problem: factProblem(id, rng) }),
   );
-  // Before the fact skills: easy, quick problems from what's open. Stories are too slow here.
-  const quick = unlocked.filter((s) => s.fastMs <= 8000);
+  // No facts yet: easy, quick problems from what's been taught. Stories are too slow here.
+  const quick = (taught.length > 0 ? taught : unlocked).filter((s) => s.fastMs <= 8000);
   const seen = new Set(items.map((i) => signature(i.problem)));
   while (items.length < count && quick.length > 0) {
     const skill = rng.pick(quick);

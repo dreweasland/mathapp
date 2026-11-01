@@ -34,7 +34,14 @@ describe('generateMissions', () => {
     expect(generateMissions(ctx(), mulberry32(1))).toEqual(generateMissions(ctx(), mulberry32(1)));
   });
   it('varies across days', () => {
-    expect(new Set(many().map((s) => s[0]?.kind)).size).toBe(2);
+    expect(new Set(many({ factCards: practiced(3) }).map((s) => s[0]?.kind)).size).toBe(2);
+  });
+  it('never gives the same kind of mission twice in a day', () => {
+    for (const over of [{}, { factCards: practiced(3) }]) {
+      for (const set of many(over)) {
+        expect(new Set(set.map((m) => m.kind)).size).toBe(3);
+      }
+    }
   });
   it('a child with no timed facts never gets a fast-facts mission', () => {
     for (const set of many({ factCards: practiced(2) })) {

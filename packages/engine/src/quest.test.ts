@@ -136,17 +136,42 @@ describe('time budget', () => {
 
 describe('warm-up', () => {
   it('uses due cards first', () => {
+    const started = of(
+      ...Object.values(placed).flatMap((s) => (s ? [s] : [])),
+      st('1.add-within-10', { attempts: 5, mastery: 30 }),
+    );
     const card = reviewCard(newFactCard('kid', 'add:3+4', '2026-11-01'), {
       correct: false,
       responseMs: 900,
       today: '2026-11-05',
       at: 1,
     });
-    const q = buildDailyQuest(input({ states: placed, factCards: [card] }));
+    const q = buildDailyQuest(input({ states: started, factCards: [card] }));
     expect(section(q, 0)[0]?.problem.factId).toBe('add:3+4');
   });
-  it('on day 1 with fact skills open, fills with new cards', () => {
+  it('fills with new cards once a fact skill has been started', () => {
+    const states = of(
+      ...Object.values(placed).flatMap((s) => (s ? [s] : [])),
+      st('1.add-within-10', { attempts: 5, mastery: 30 }),
+    );
+    const q = buildDailyQuest(input({ states, questsCompleted: 0 }));
+    expect(section(q, 0).every((i) => i.problem.factId)).toBe(true);
+  });
+  it('never drills facts of a skill that is open but not yet taught', () => {
     const q = buildDailyQuest(input({ states: placed, questsCompleted: 0 }));
+    expect(q.mode).toBe('new');
+    expect(q.todaySkillId).toBe('1.add-within-10');
+    for (const i of section(q, 0)) {
+      expect(i.problem.factId).toBeUndefined();
+      expect(i.problem.skillId).not.toBe('1.add-within-10');
+    }
+  });
+  it('placed-out fact skills count as taught', () => {
+    const states = of(
+      ...Object.values(placed).flatMap((s) => (s ? [s] : [])),
+      st('1.add-within-10', { placedOut: true, mastery: 70 }),
+    );
+    const q = buildDailyQuest(input({ states }));
     expect(section(q, 0).every((i) => i.problem.factId)).toBe(true);
   });
   it('before fact skills, falls back to easy problems from open skills', () => {
@@ -177,7 +202,7 @@ describe('warm-up', () => {
   });
   it('a warm-up pick matches the deck selection', () => {
     const facts = unlockedFacts(['1.add-within-10']);
-    expect(selectWarmupFacts([], facts, '2026-11-05', 6)).toHaveLength(6);
+    expect(selectWarmupFacts([], facts, '2026-11-05', 6, mulberry32(1))).toHaveLength(6);
   });
 });
 

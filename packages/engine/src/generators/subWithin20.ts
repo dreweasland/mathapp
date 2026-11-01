@@ -1,7 +1,7 @@
 import { arithCandidates } from '../distractors';
 import { subFactId } from '../facts';
 import { numericChoices } from '../problem';
-import type { Difficulty, Generator, Problem, QuestionType } from '../types';
+import type { Generator, Problem, QuestionType } from '../types';
 import { arithProblem, pairs } from './arith';
 
 const SKILL = '1.sub-within-20';

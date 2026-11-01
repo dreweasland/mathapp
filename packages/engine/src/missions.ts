@@ -40,13 +40,16 @@ export function generateMissions(ctx: MissionContext, rng: Rng): Mission[] {
   const canBeatTimes = practiced.length >= FAST_FACT_TARGET;
   const streakTarget = ctx.todayMastery < 40 ? 4 : 5;
 
-  const easy =
-    rng.int(0, 1) === 0 ? mission(ctx, 1, 'finish-quest', 1) : mission(ctx, 1, 'in-a-row', 3);
-  const medium = mission(ctx, 2, 'finish-challenge', 1);
   const hard =
     canBeatTimes && rng.int(0, 1) === 0
       ? mission(ctx, 3, 'fast-facts', FAST_FACT_TARGET)
       : mission(ctx, 3, 'in-a-row', streakTarget);
+  // Two in-a-row missions on one day would just be the same mission twice.
+  const easy =
+    hard.kind === 'in-a-row' || rng.int(0, 1) === 0
+      ? mission(ctx, 1, 'finish-quest', 1)
+      : mission(ctx, 1, 'in-a-row', 3);
+  const medium = mission(ctx, 2, 'finish-challenge', 1);
   return [easy, medium, hard];
 }
 
