@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #fff8e7;
+  color: #1d3557;
+  font-family: ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  /* The app must feel like an app: no text selection or double-tap zoom while tapping. */
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
