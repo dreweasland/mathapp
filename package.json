@@ -19,7 +19,7 @@
     "demo": "tsx scripts/demo-quest.ts",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "typecheck": "tsc -p packages/engine --noEmit && tsc -p packages/content --noEmit && tsc -p apps/web --noEmit"
+    "typecheck": "tsc -p packages/engine --noEmit && tsc -p packages/content --noEmit && tsc -p apps/web --noEmit && tsc -p scripts --noEmit"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

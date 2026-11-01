@@ -1,0 +1,53 @@
+{
+  "childId": "demo-child",
+  "name": "Sam",
+  "skillStates": {
+    "1.counting": {
+      "childId": "demo-child",
+      "skillId": "1.counting",
+      "mastery": 88,
+      "attempts": 40,
+      "difficulty": 4,
+      "errorCounts": {},
+      "fastStreak": 0,
+      "wrongStreak": 0,
+      "questsOnSkill": 0,
+      "updatedAt": 0,
+      "masteredAt": 1
+    },
+    "1.ten-frame": {
+      "childId": "demo-child",
+      "skillId": "1.ten-frame",
+      "mastery": 74,
+      "attempts": 20,
+      "difficulty": 3,
+      "errorCounts": {},
+      "fastStreak": 0,
+      "wrongStreak": 0,
+      "questsOnSkill": 0,
+      "updatedAt": 0
+    }
+  },
+  "factCards": [],
+  "wallet": {
+    "childId": "demo-child",
+    "coins": 90,
+    "lifetimeCoins": 300,
+    "updatedAt": 0
+  },
+  "description": "missed three days with one shield, which is kept",
+  "today": "2026-11-11",
+  "questsCompleted": 12,
+  "streak": {
+    "childId": "demo-child",
+    "current": 12,
+    "best": 12,
+    "shields": 1,
+    "parentShields": 0,
+    "countedDates": [],
+    "excusedDates": [],
+    "perfectWeeks": [],
+    "updatedAt": 0,
+    "lastCountedDate": "2026-11-07"
+  }
+}
