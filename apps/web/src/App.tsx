@@ -1,24 +1,31 @@
 import type { ChildSettings } from '@mathapp/engine';
-import { MotionConfig } from 'framer-motion';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, type JSX } from 'react';
 import { useGame } from './game/GameProvider';
-import { Celebrate } from './screens/Celebrate';
-import { Blitz } from './screens/Blitz';
 import { Cheer } from './screens/Cheer';
-import { ChestReveal } from './screens/ChestReveal';
-import { Free, FreeDone } from './screens/Free';
 import { Home } from './screens/Home';
-import { SkillMap } from './screens/Map';
 import { Placement } from './screens/Placement';
 import { Quest } from './screens/Quest';
 import { Setup } from './screens/Setup';
-import { Shop } from './screens/Shop';
-import { Stickers } from './screens/Stickers';
-import { Trophies } from './screens/Trophies';
 import { Who } from './screens/Who';
 
-/** Grown-ups only, so the child's first load doesn't carry it. Precached for offline. */
+/**
+ * Home and the quest load first. Everything else, including the animation library, arrives
+ * on first use. The service worker precaches all of it, so offline still works.
+ */
 const Parent = lazy(() => import('./parent/entry'));
+const named = <K extends string>(
+  load: () => Promise<Record<K, () => JSX.Element | null>>,
+  key: K,
+) => lazy(() => load().then((m) => ({ default: m[key] })));
+const Celebrate = named(() => import('./screens/Celebrate'), 'Celebrate');
+const ChestReveal = named(() => import('./screens/ChestReveal'), 'ChestReveal');
+const SkillMap = named(() => import('./screens/Map'), 'SkillMap');
+const Shop = named(() => import('./screens/Shop'), 'Shop');
+const Stickers = named(() => import('./screens/Stickers'), 'Stickers');
+const Trophies = named(() => import('./screens/Trophies'), 'Trophies');
+const Blitz = named(() => import('./screens/Blitz'), 'Blitz');
+const Free = named(() => import('./screens/Free'), 'Free');
+const FreeDone = named(() => import('./screens/Free'), 'FreeDone');
 const SetupRestore = lazy(() => import('./parent/restoreEntry'));
 
 function Screen() {
@@ -43,11 +50,7 @@ function Screen() {
     case 'who':
       return <Who />;
     case 'parent':
-      return (
-        <Suspense fallback={null}>
-          <Parent onExit={() => void actions.closeParent()} />
-        </Suspense>
-      );
+      return <Parent onExit={() => void actions.closeParent()} />;
     case 'placement':
       return <Placement />;
     case 'home':
@@ -86,6 +89,7 @@ function applySettings(settings: ChildSettings | undefined) {
 export function App() {
   const { actions, use } = useGame();
   const settings = use((s) => s.child?.settings);
+  const chestOpen = use((s) => s.openedChest !== undefined);
   useEffect(() => applySettings(settings), [settings]);
   useEffect(() => {
     void actions.open();
@@ -96,9 +100,12 @@ export function App() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [actions]);
   return (
-    <MotionConfig reducedMotion={settings?.reduceMotion ? 'always' : 'user'}>
-      <Screen />
-      <ChestReveal />
-    </MotionConfig>
+    <>
+      <Suspense fallback={null}>
+        <Screen />
+      </Suspense>
+      {/* Its own boundary, so loading it can't blank the screen behind the chest. */}
+      <Suspense fallback={null}>{chestOpen && <ChestReveal />}</Suspense>
+    </>
   );
 }

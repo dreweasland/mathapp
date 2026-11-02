@@ -9,6 +9,9 @@ export async function stubSpeech(page: Page) {
     Object.defineProperty(window, 'speechSynthesis', {
       value: {
         cancel: () => undefined,
+        getVoices: () => [],
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
         speak: (u: SpeechSynthesisUtterance) => {
           if (u.text) said.push(u.text);
           setTimeout(() => u.onend?.(new Event('end') as SpeechSynthesisEvent), 0);

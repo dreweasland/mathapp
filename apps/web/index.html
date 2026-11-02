@@ -10,9 +10,32 @@
     <meta name="apple-mobile-web-app-title" content="%APP_NAME%" />
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <title>%APP_NAME%</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff8e7;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Paints before any script runs. React replaces it on first render. -->
+      <div
+        style="display: flex; height: 100dvh; align-items: center; justify-content: center"
+        aria-hidden="true"
+      >
+        <svg width="96" height="96" viewBox="0 0 100 100">
+          <circle cx="24" cy="26" r="16" fill="#c98d54" />
+          <circle cx="76" cy="26" r="16" fill="#c98d54" />
+          <circle cx="50" cy="55" r="40" fill="#d89b63" />
+          <ellipse cx="50" cy="68" rx="20" ry="16" fill="#f2d9bd" />
+          <circle cx="36" cy="46" r="4" fill="#1d3557" />
+          <circle cx="64" cy="46" r="4" fill="#1d3557" />
+          <ellipse cx="50" cy="60" rx="6" ry="4.5" fill="#1d3557" />
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

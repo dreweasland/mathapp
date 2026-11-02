@@ -892,7 +892,7 @@ export function createGame(deps: GameDeps) {
       }
 
       set({ feedback: result, mood: 'happy' });
-      play('correct');
+      play('correct', Math.max(0, next.inARow - 1));
       const cardBefore = problem.factId ? get().progress?.cards.get(problem.factId) : undefined;
       const scored = settle(where(next), problem, result.outcome, ms, result.coins);
       // Missions belong to the quest; free play can't finish them.
@@ -1077,7 +1077,7 @@ export function createGame(deps: GameDeps) {
       if (state.openedChest) return;
       const { reward, inventory } = openNextChest(data.inventory, now());
       if (!reward) return;
-      play('cheer');
+      play('chest');
       set({ openedChest: reward, progress: { ...data, inventory }, mood: 'cheer' });
       save({ inventory });
       const name = reward.itemId ? render(`item.${reward.itemId}`) : '';
