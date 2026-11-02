@@ -15,20 +15,22 @@ A local-first math practice PWA for a 6-year-old. `MATH_APP_BRIEF.md` is the pro
 ```
 apps/web/                  PWA shell
   src/config.ts            app name (one value, still to be chosen with the child)
-  src/db/                  Dexie schema and typed repositories; all writes go through repositories
+  src/db/                  Dexie schema, typed repositories, backup.ts; all writes go through repositories
   src/game/                store.ts: the one game store, built from injected deps so tests need no browser
   src/audio/               speech.ts (always by string key), sfx.ts
   src/question/            ProblemView = Prompt + Hint + Answers; one renderer for all 6 question types
   src/visuals/ src/ui/     clock, ten-frame, shapes, base-ten; mascot, big button
-  src/screens/             Setup, Placement, Home, Quest, Celebrate, ChestReveal, Map, Trophies, Stickers, Shop
+  src/screens/             Setup, Who, Placement, Home, Cheer, Quest, Celebrate, ChestReveal, Map, Trophies, Stickers, Shop
+  src/parent/              grown-ups' area, lazy-loaded: PinGate, ParentApp, pages/, reportDoc (teacher report)
   src/gallery.tsx          dev-only page of any problem, for layout tests; never in the build
-  e2e/                     Playwright: offline, quest, layout
+  e2e/                     Playwright: offline, quest, layout, rewards, parent
 packages/engine/src/
   rng.ts dates.ts          seeded RNG, date-string helpers
   types.ts                 shared types
   generators/              one generator + test per skill
   mastery difficulty frontier placement factDeck    adaptive logic
   streak wallet goals missions quest rewards        daily loop logic
+  report                   dashboard and teacher-report numbers
   questRun                 tries, sections, end-on-win, resume, scoring (pure; the store just calls it)
   audit.test.ts            independent answer-key audit
 packages/content/src/      grade1.ts (skills), collectibles.ts (sets, shop, prices), strings.en.ts (speech and praise), answerSpeech.ts
@@ -79,6 +81,20 @@ Agreed with the parent before Phase 0.
 - **Chest tiers:** bronze, silver and gold by quests done this week, reset each Monday. A Perfect Week upgrades that day's chest.
 - **Shop:** 2,630 coins total, about a month of quests, because it's the only coin sink. Tapping tries an item on; buying is a second, separate tap. Prices live in `collectibles.ts`.
 - **Missed problems:** non-fact problems missed twice return as retakes in the next quest (max 2 a day) and clear when answered. Fact problems use their cards.
+- **PIN:** four digits, salted hash, device-only, never in a backup, and relocks on every entry. It keeps a 6-year-old out and nothing more. Setting or replacing one takes a grown-up multiplication question, so a forgotten PIN never costs progress.
+- **Getting to the dashboard:** tap your picture on Home, then the gear. One child goes straight to Home on open; two or more get "who's playing?". Pictures are unique per device, so a non-reader can tell them apart.
+- **Fluency grid:** four levels, not the brief's three. `automatic` is the brief's bar, which takes 10 attempts per card; `quick` (last 2 right within 3s) shows progress in the months before that.
+- **Minutes:** summed from gaps between answers, each capped at 60s, because a quest can be paused for hours. Placement stays out of all totals.
+- **Trend:** first-try accuracy of the latest answers against the ones before. Harder problems can lower it, so the dashboard says it's a prompt to look.
+- **Teacher report:** one self-contained HTML document with no scripts or outside files, so preview, print and a shared file are the same page. It must stay on one page on Letter and A4.
+- **Saving files:** share sheet first, then a download, because downloads are unreliable in an installed iPhone app. A cancelled share doesn't count as a backup.
+- **Backups:** every child in one file, restored by replacing everything in one transaction after a confirmation. Every row is checked first, so a bad file changes nothing.
+- **Backup reminder:** after 7 quests, then every 14 days.
+- **Goals:** one on Home at a time. A reached goal stays until delivered and can't be removed; an unreached one can be. A window that closes short just stops showing, with no message to the child.
+- **Cheers:** one per quest, oldest first, marked heard only on tapping past it. Recordings start inside the child's tap because iOS blocks later audio, and are stored as bytes because Blobs in IndexedDB have been unreliable on iOS.
+- **Daily goal:** `quest+challenge` changes what the child hears and what the parent sees. The challenge stays skippable and the streak ignores it.
+- **Grown-up notes on Home:** one at a time in the header (save failure, then install, then backup), because anywhere else small phones push them off screen.
+- **Moved to Phase 5:** voice, left/right-hand layout, reduce motion and color-blind palette settings. The brief lists them under the dashboard but also in Phase 5.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
 
 ## How the quest UI works
