@@ -13,6 +13,23 @@ import type {
 } from '@mathapp/engine';
 import Dexie, { type EntityTable, type Table } from 'dexie';
 
+/** Stored as bytes, because Blobs in IndexedDB have been unreliable on iOS Safari. */
+export interface CheerAudio {
+  bytes: ArrayBuffer;
+  type: string;
+}
+
+export type StoredCheer = Cheer<CheerAudio>;
+
+/** The one row of device-wide settings. Stays behind on export: a PIN belongs to a device. */
+export interface Family {
+  id: 'family';
+  pinHash?: string;
+  pinSalt?: string;
+  lastBackupAt?: number;
+  updatedAt: number;
+}
+
 /**
  * The only place that knows the IndexedDB schema.
  *
@@ -31,7 +48,8 @@ export class AppDb extends Dexie {
   inventories!: EntityTable<Inventory, 'childId'>;
   missions!: Table<Mission, [string, string, number]>;
   goals!: EntityTable<Goal, 'id'>;
-  cheers!: EntityTable<Cheer<Blob>, 'id'>;
+  cheers!: EntityTable<StoredCheer, 'id'>;
+  family!: EntityTable<Family, 'id'>;
 
   constructor(name = 'mathapp') {
     super(name);
@@ -48,6 +66,7 @@ export class AppDb extends Dexie {
       goals: 'id, childId, updatedAt',
       cheers: 'id, childId, updatedAt',
     });
+    this.version(2).stores({ family: 'id, updatedAt' });
   }
 }
 

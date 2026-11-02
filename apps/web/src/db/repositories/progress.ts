@@ -5,6 +5,7 @@ import {
   type Attempt,
   type ChildProfile,
   type FactCard,
+  type Goal,
   type Inventory,
   type LocalDate,
   type Mission,
@@ -14,7 +15,7 @@ import {
   type Streak,
   type Wallet,
 } from '@mathapp/engine';
-import type { AppDb } from '../db';
+import type { AppDb, StoredCheer } from '../db';
 
 export interface ChildProgress {
   states: SkillStates;
@@ -22,6 +23,9 @@ export interface ChildProgress {
   wallet: Wallet;
   streak: Streak;
   inventory: Inventory;
+  goals: Goal[];
+  /** Waiting for the next quest, oldest first. */
+  cheers: StoredCheer[];
 }
 
 /** Everything one tap can change, written together so a closed app can't leave half of it. */
@@ -35,17 +39,21 @@ export interface ProgressChange {
   child?: ChildProfile | undefined;
   inventory?: Inventory | undefined;
   missions?: Mission[] | undefined;
+  goals?: Goal[] | undefined;
+  cheer?: StoredCheer | undefined;
 }
 
 export function progressRepository(db: AppDb) {
   return {
     async load(childId: string): Promise<ChildProgress> {
-      const [skills, cards, wallet, streak, inventory] = await Promise.all([
+      const [skills, cards, wallet, streak, inventory, goals, cheers] = await Promise.all([
         db.skillStates.where('childId').equals(childId).toArray(),
         db.factCards.where('childId').equals(childId).toArray(),
         db.wallets.get(childId),
         db.streaks.get(childId),
         db.inventories.get(childId),
+        db.goals.where('childId').equals(childId).toArray(),
+        db.cheers.where('childId').equals(childId).sortBy('createdAt'),
       ]);
       return {
         states: Object.fromEntries(skills.map((s) => [s.skillId, s])),
@@ -53,6 +61,8 @@ export function progressRepository(db: AppDb) {
         wallet: wallet ?? newWallet(childId),
         streak: streak ?? newStreak(childId),
         inventory: inventory ?? newInventory(childId),
+        goals,
+        cheers: cheers.filter((c) => c.playedAt === undefined),
       };
     },
 
@@ -73,6 +83,8 @@ export function progressRepository(db: AppDb) {
         db.children,
         db.inventories,
         db.missions,
+        db.goals,
+        db.cheers,
       ];
       await db.transaction('rw', tables, async () => {
         if (change.session) await db.sessions.put(change.session);
@@ -84,6 +96,8 @@ export function progressRepository(db: AppDb) {
         if (change.child) await db.children.put(change.child);
         if (change.inventory) await db.inventories.put(change.inventory);
         if (change.missions?.length) await db.missions.bulkPut(change.missions);
+        if (change.goals?.length) await db.goals.bulkPut(change.goals);
+        if (change.cheer) await db.cheers.put(change.cheer);
       });
     },
   };

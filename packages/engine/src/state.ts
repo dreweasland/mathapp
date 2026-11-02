@@ -203,11 +203,11 @@ export interface Goal {
   updatedAt: number;
 }
 
-/** `AudioData` is a Blob in the browser; the engine stays free of DOM types. */
+/** `AudioData` is browser-only, so the engine stays free of DOM types. */
 export interface Cheer<AudioData = unknown> {
   id: string;
   childId: string;
-  audioBlob?: AudioData;
+  audio?: AudioData;
   emoji?: string;
   createdAt: number;
   playedAt?: number;
