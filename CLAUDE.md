@@ -94,6 +94,8 @@ Agreed with the parent before Phase 0.
 - **Cheers:** one per quest, oldest first, marked heard only on tapping past it. Recordings start inside the child's tap because iOS blocks later audio, and are stored as bytes because Blobs in IndexedDB have been unreliable on iOS.
 - **Daily goal:** `quest+challenge` changes what the child hears and what the parent sees. The challenge stays skippable and the streak ignores it.
 - **Grown-up notes on Home:** one at a time in the header (save failure, then install, then backup), because anywhere else small phones push them off screen.
+- **Fact Blitz (Phase 5):** time shows as a bar that fills, with no countdown numbers and no ticking. It stays opt-in.
+- **Standards:** the teacher report says "selected Grade 1 standards". The brief's list omits 1.MD.C.4, 1.OA.D.7–8 and 1.G.A.2, and those stay out unless the curriculum is extended.
 - **Moved to Phase 5:** voice, left/right-hand layout, reduce motion and color-blind palette settings. The brief lists them under the dashboard but also in Phase 5.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
 
