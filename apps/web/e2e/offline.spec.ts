@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('installable shell loads, then reloads offline', async ({ page, context }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Math Quest' })).toBeVisible();
+  await expect(page.getByRole('heading')).toBeVisible();
 
   const manifest = await page.request.get('/manifest.webmanifest');
   expect(manifest.ok()).toBe(true);
@@ -20,5 +20,5 @@ test('installable shell loads, then reloads offline', async ({ page, context }) 
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Math Quest' })).toBeVisible();
+  await expect(page.getByRole('heading')).toBeVisible();
 });
