@@ -7,6 +7,7 @@
  * - All ids are strings; `childId` scopes every row to one profile.
  */
 import type { QuestRun } from './questRun';
+import type { Problem } from './types';
 
 export type LocalDate = string;
 export type DailyGoal = 'quest' | 'quest+challenge';
@@ -56,6 +57,8 @@ export interface SkillState {
   wrongStreak: number;
   /** Quests that featured this skill since it was last mastered; used to rotate off a stuck skill. */
   questsOnSkill: number;
+  /** Problems missed twice, due back in the next quest. Non-fact only: fact cards do this. */
+  retakes?: Problem[];
   updatedAt: number;
 }
 
@@ -141,10 +144,34 @@ export interface Wallet {
   updatedAt: number;
 }
 
+export type ChestTier = 'bronze' | 'silver' | 'gold' | 'perfect';
+
+/** A chest's contents are decided and banked when earned; opening it only shows them. */
+export interface ChestReward {
+  source: 'daily' | 'missions' | 'milestone';
+  tier: ChestTier;
+  coins: number;
+  /** A collectible or cosmetic. Absent when the chest held only coins or a shield. */
+  itemId?: string;
+  shield?: boolean;
+  /** The item was already owned, so the chest paid coins too. */
+  duplicate?: boolean;
+  /** Set id, when this item finished a collection. */
+  setCompleted?: string;
+}
+
 export interface Inventory {
   childId: string;
+  /** Collectibles, cosmetics and scene decorations. Only ever grows. */
   items: string[];
+  /** Slot to cosmetic id. */
   mascotEquipped: Record<string, string>;
+  /** Earned but not opened yet, so closing the app can't cost a chest. */
+  unopened: ChestReward[];
+  /** Item pulls in a row that were duplicates, for the pity rule. */
+  dupesInARow: number;
+  dailyChestDate?: LocalDate;
+  bonusChestDate?: LocalDate;
   updatedAt: number;
 }
 

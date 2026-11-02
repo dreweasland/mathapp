@@ -72,7 +72,14 @@ const SIZES = {
  */
 const secondsPerProblem = (skill: SkillDef) => 10 + skill.fastMs / 1000;
 
-const signature = (p: Problem) => JSON.stringify(p.operands);
+const MAX_RETAKES = 2;
+
+export const signature = (p: Problem) => JSON.stringify(p.operands);
+
+/** Problems the child was shown the answer to, due back in a later quest. */
+function duePracticeProblems(skills: SkillDef[], states: SkillStates, limit: number): Problem[] {
+  return skills.flatMap((s) => states[s.id]?.retakes ?? []).slice(0, Math.max(0, limit));
+}
 
 /** Avoids showing the same problem twice in a section. */
 function drawUnique(make: () => Problem, seen: Set<string>): Problem {
@@ -141,7 +148,9 @@ function todaySection(
     ramp || mode === 'review'
       ? []
       : selectReview(input.skills, input.states, REVIEW_SLOTS).filter((s) => s.id !== skill.id);
-  const main = count - reviews.length;
+  const retakes = duePracticeProblems(input.skills, input.states, Math.min(MAX_RETAKES, count - 2));
+  for (const problem of retakes) seen.add(signature(problem));
+  const main = count - reviews.length - retakes.length;
   const items: QuestItem[] = [];
   for (let i = 0; i < main; i++) {
     const problem = drawUnique(() => generate(rng, difficulty), seen);
@@ -154,6 +163,8 @@ function todaySection(
     );
     items.push({ problem, review: true });
   }
+  // After the first problem, so a worked example still leads and a final win still ends.
+  items.splice(1, 0, ...retakes.map((problem) => ({ problem, review: true })));
   return items;
 }
 

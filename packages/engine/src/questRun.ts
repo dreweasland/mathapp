@@ -3,10 +3,19 @@ import { newFactCard, reviewCard } from './factDeck';
 import { refreshUnlocks } from './frontier';
 import { applyResult, newSkillState, outcomeFor } from './mastery';
 import type { DailyQuest, QuestItem } from './quest';
-import { recordQuestOnSkill } from './quest';
-import type { ChildProfile, ErrorType, FactCard, LocalDate, Streak, Wallet } from './state';
-import { completeQuest, type StreakEvent } from './streak';
+import { recordQuestOnSkill, signature } from './quest';
+import type {
+  ChildProfile,
+  ErrorType,
+  FactCard,
+  LocalDate,
+  SkillState,
+  Streak,
+  Wallet,
+} from './state';
+import { completeQuest, earnShield, type StreakEvent } from './streak';
 import type { ItemOutcome, Problem, SkillDef, SkillStates } from './types';
+import { FIRST_SHIELD_DAY } from './rewards';
 import { coinsForAnswer, COINS, earnCoins } from './wallet';
 
 /**
@@ -220,13 +229,27 @@ export interface SettleInput {
   at: number;
 }
 
+const MAX_RETAKES_PER_SKILL = 3;
+
+/** A missed problem comes back later; getting it right clears it. Fact cards do this themselves. */
+function updateRetakes(state: SkillState, problem: Problem, outcome: ItemOutcome): SkillState {
+  if (problem.factId) return state;
+  const others = (state.retakes ?? []).filter((p) => signature(p) !== signature(problem));
+  const retakes =
+    outcome === 'missed' ? [...others, problem].slice(-MAX_RETAKES_PER_SKILL) : others;
+  const next: SkillState = { ...state, retakes };
+  if (retakes.length === 0) delete next.retakes;
+  return next;
+}
+
 /** Scores one finished problem, once, however many tries it took. */
 export function settleItem(input: SettleInput): { states: SkillStates; card?: FactCard } {
   const { skills, states, childId, problem, outcome, errorType, responseMs, today, at } = input;
   const skill = skills.find((s) => s.id === problem.skillId);
   if (!skill) throw new Error(`Unknown skill ${problem.skillId}`);
   const state = states[skill.id] ?? newSkillState(childId, skill.id);
-  const scored = { ...states, [skill.id]: applyResult(state, skill, { outcome, errorType, at }) };
+  const applied = applyResult(state, skill, { outcome, errorType, at });
+  const scored = { ...states, [skill.id]: updateRetakes(applied, problem, outcome) };
   const nextStates = refreshUnlocks(skills, scored, childId, at);
   if (!problem.factId) return { states: nextStates };
   const card = input.card ?? newFactCard(childId, problem.factId, today);
@@ -258,7 +281,14 @@ export function completeDailyQuest(input: {
 }): QuestCompletion {
   const { child, wallet, states, quest, at } = input;
   // The quest belongs to the day it started, even if it finishes after midnight.
-  const { streak, events } = completeQuest(input.streak, quest.date, at);
+  const counted = completeQuest(input.streak, quest.date, at);
+  const events = [...counted.events];
+  let { streak } = counted;
+  // The first week's promise: a shield on day 7, even if a missed day reset the count.
+  if (quest.dayNumber === FIRST_SHIELD_DAY && streak.shields === 0) {
+    streak = earnShield(streak, at);
+    events.push({ type: 'shield-earned' });
+  }
   const today = states[quest.todaySkillId] ?? newSkillState(child.id, quest.todaySkillId);
   return {
     child: { ...child, questsCompleted: child.questsCompleted + 1, updatedAt: at },

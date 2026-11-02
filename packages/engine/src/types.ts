@@ -108,6 +108,22 @@ export interface SkillDef {
   order: number;
 }
 
+export interface CollectibleSet {
+  id: string;
+  /** About 12, all visible to the child from the start. */
+  items: string[];
+  /** Added to the child's scenes when the set is complete. */
+  decoration: string;
+}
+
+export type CosmeticSlot = 'hat' | 'accessory' | 'background';
+
+export interface Cosmetic {
+  id: string;
+  slot: CosmeticSlot;
+  price: number;
+}
+
 /** One problem's result, however many tries it took. */
 export type ItemOutcome = 'fast' | 'slow' | 'second-try' | 'missed';
 
