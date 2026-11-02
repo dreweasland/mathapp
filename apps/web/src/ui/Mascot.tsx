@@ -4,7 +4,7 @@ const MOUTH: Record<Mood, string> = {
   idle: 'M38 62 Q50 70 62 62',
   happy: 'M34 58 Q50 80 66 58 Z',
   cheer: 'M34 58 Q50 80 66 58 Z',
-  thinking: 'M42 63 Q52 70 60 62',
+  thinking: 'M42 63 Q52 70 60 63',
 };
 
 /** One bear everywhere. Thinking is calm and curious, never sad. */
