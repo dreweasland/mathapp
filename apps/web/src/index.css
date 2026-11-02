@@ -75,6 +75,10 @@ button {
 .tap-primary:disabled {
   opacity: 0.45;
 }
+.tap-blitz {
+  background: var(--color-ink);
+  color: white;
+}
 .tap-used {
   background: #eef0f3;
   box-shadow: none;

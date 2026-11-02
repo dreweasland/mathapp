@@ -26,7 +26,7 @@ export function Free() {
                 key={skill.id}
                 type="button"
                 aria-label={`blitz ${render(skill.speechKey)}`}
-                className="tap tap-primary aspect-square flex-col text-3xl"
+                className="tap tap-blitz aspect-square flex-col text-3xl"
                 onClick={() => actions.startBlitz(skill.id)}
               >
                 <span aria-hidden="true">⚡{SKILL_ICON[skill.id]}</span>
