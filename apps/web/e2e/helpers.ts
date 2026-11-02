@@ -119,6 +119,39 @@ export async function setUpChild(page: Page) {
   await expect(start).toBeVisible();
 }
 
+/** Changes one saved row, to set up a state that would take weeks to reach by playing. */
+export async function patchRow(page: Page, table: string, changes: Record<string, unknown>) {
+  await page.evaluate(
+    ({ table, changes }) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('mathapp');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const tx = open.result.transaction(table, 'readwrite');
+          const store = tx.objectStore(table);
+          const all = store.getAll();
+          all.onsuccess = () => {
+            for (const row of all.result) store.put({ ...row, ...changes });
+          };
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+        };
+      }),
+    { table, changes },
+  );
+}
+
+/** Opens every chest waiting on the current screen. */
+export async function openChests(page: Page) {
+  const chest = page.getByRole('button', { name: 'open chest' });
+  while (await chest.isVisible()) {
+    await chest.click();
+    await page.getByTestId('chest-reveal').getByRole('button', { name: 'next' }).click();
+  }
+}
+
 export async function waitForServiceWorker(page: Page) {
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;

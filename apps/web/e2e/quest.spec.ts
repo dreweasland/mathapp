@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   answer,
+  openChests,
   playUntilBreak,
   problemOnScreen,
   said,
@@ -39,6 +40,7 @@ test('a full quest works offline, reaches the celebration, and stays done', asyn
   const earned = await page.getByTestId('coins-earned').innerText();
   expect(Number(earned.replace(/\D/g, ''))).toBeGreaterThan(15);
 
+  await openChests(page);
   const heard = await said(page);
   expect(heard).toContain('You did it! See you tomorrow!');
   expect(heard.some((line) => /earned \d+ coins/.test(line))).toBe(true);
@@ -50,7 +52,10 @@ test('a full quest works offline, reaches the celebration, and stays done', asyn
   await page.reload();
   await expect(page.getByTestId('see-you')).toBeVisible();
   await expect(page.getByRole('button', { name: 'start quest' })).toHaveCount(0);
-  await expect(page.getByTestId('coins')).toContainText(earned.replace(/\D/g, ''));
+  const banked = await page.getByTestId('coins').innerText();
+  expect(Number(banked.replace(/\D/g, ''))).toBeGreaterThanOrEqual(
+    Number(earned.replace(/\D/g, '')),
+  );
 
   // Tomorrow there's a new quest, and the streak has carried over.
   await page.clock.setFixedTime(DAY_ONE + DAY);
