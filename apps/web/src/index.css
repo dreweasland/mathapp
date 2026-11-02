@@ -49,6 +49,7 @@ button {
 
 /* Every child-facing control. Set here so nothing can come in under 64px. */
 .tap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,11 +84,38 @@ button {
   background: var(--color-leaf);
 }
 
-/* A phone on its side has room for three rows of keys, not four. */
+.home-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+/* A phone on its side has room for three rows of keys, not four, and two columns of Home. */
 @media (orientation: landscape) and (max-height: 500px) {
   .pad-keys {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+  .home-body {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+}
+
+/* What's still to find: a shape to look forward to, not a missing piece. */
+.silhouette {
+  filter: brightness(0);
+  opacity: 0.18;
+}
+
+/* Earned things glow. */
+.map-glow {
+  box-shadow:
+    0 4px 0 var(--color-ink),
+    0 0 16px 4px var(--color-sun);
 }
 
 .bounce {
@@ -121,5 +149,14 @@ button {
   .bounce,
   .pop {
     animation: none;
+  }
+}
+
+/* The certificate prints alone, on plain paper. */
+@media print {
+  html,
+  body {
+    overflow: visible;
+    background: white;
   }
 }

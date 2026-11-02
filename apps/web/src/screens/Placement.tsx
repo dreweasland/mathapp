@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useGame } from '../game/GameProvider';
 import { ProblemView } from '../question/ProblemView';
 import { BigButton } from '../ui/BigButton';
-import { Mascot } from '../ui/Mascot';
+import { MyMascot } from '../ui/MyMascot';
 
 export function Placement() {
   const { actions, use, audioOk, sayDigit } = useGame();
@@ -14,7 +14,7 @@ export function Placement() {
   if (!placement) {
     return (
       <main className="screen items-center justify-center gap-8 text-center">
-        <Mascot mood="happy" size={170} />
+        <MyMascot mood="happy" size={170} />
         <BigButton
           label="start warm-up"
           className="min-h-28 w-full max-w-md text-6xl"
@@ -28,7 +28,7 @@ export function Placement() {
   return (
     <main className="screen">
       <header className="flex items-center justify-between">
-        <Mascot mood={mood} size={64} />
+        <MyMascot mood={mood} size={64} />
         <BigButton label="say it again" tone="quiet" onClick={actions.replay}>
           🔊
         </BigButton>
