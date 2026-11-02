@@ -1,4 +1,6 @@
 import { WORD_SCENES } from '@mathapp/engine';
+import { ITEM_NAMES } from './collectibles';
+import { GRADE_1_SKILLS } from './grade1';
 
 /**
  * Every line the app speaks. `{name}` is filled from the speech params. Recorded clips can
@@ -128,11 +130,45 @@ export const STRINGS: Record<string, string> = {
   'streak.perfect-week': 'A perfect week! Here comes a big chest!',
   'streak.shield-earned': 'You earned a shield!',
 
+  // Badges, read aloud on the trophy wall
+  ...Object.fromEntries(GRADE_1_SKILLS.map((s) => [`badge.${s.id}`, s.badgeName])),
+  'badge.earned': 'You earned a new badge! {badge}!',
+  'badge.waiting': '{badge}. You can earn this one!',
+
+  // Things to find and wear
+  ...ITEM_NAMES,
+  'chest.tap': 'Tap the chest to open it!',
+  'chest.item': 'You found the {item}!',
+  'chest.again': 'Another {item}! Here are some coins too.',
+  'chest.coins': '{coins} coins!',
+  'chest.shield': 'You found a shield for your plant!',
+  'chest.present': 'A present for your bear!',
+  'chest.set-done': 'You finished the whole collection! A new one is ready.',
+
+  // Places
+  'nav.map': 'This is your map. Tap a spot to hear its name.',
+  'nav.trophies': 'These are your badges.',
+  'nav.stickers': 'This is your animal collection.',
+  'nav.shop': 'Dress up your bear!',
+  'map.here': '{skill}. You are here!',
+  'map.earned': '{skill}. You did it!',
+  'map.open': '{skill}. This one is open.',
+  'map.next': '{skill}. Keep going to open this one.',
+  'sticker.waiting': 'You can find this one in a chest.',
+  'shop.try': 'Do you like it? Tap the coin to buy it.',
+  'shop.need': 'You need {coins} more coins. Keep practicing!',
+  'shop.bought': 'It looks great!',
+  'plant.days': 'Your plant is {days} days old. Your best is {best}.',
+  'plant.seed': 'Do a quest and your plant will grow. Your best is {best}.',
+  'shield.count': 'You have {count} shields. They keep your plant safe.',
+  'certificate.days': 'You practiced {days} days in a row!',
+
   // Missions
   'mission.in-a-row': 'Get {target} in a row.',
   'mission.finish-quest': "Finish today's quest.",
   'mission.finish-challenge': 'Finish the challenge.',
   'mission.fast-facts': 'Beat your fast time on {target} facts.',
+  'mission.all-done': 'All three missions! You get a bonus chest!',
 };
 
 export function render(key: string, params: Record<string, string | number> = {}): string {

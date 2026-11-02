@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GENERATORS, generatorFor, mulberry32, type Difficulty } from '@mathapp/engine';
+import { COLLECTIBLE_SETS, COSMETICS, FIRST_ACCESSORY, artFor, cosmeticFor } from './collectibles';
 import { GRADE_1_SKILLS } from './grade1';
 import { STRINGS, SCENE_COUNT, render } from './strings.en';
 
@@ -83,5 +84,38 @@ describe('speech strings', () => {
   });
   it('the reset message is warm and forward-looking', () => {
     expect(render('streak.new', { best: 12 })).toBe('New streak starts today! Your best was 12.');
+  });
+});
+
+describe('collectibles and cosmetics', () => {
+  const allItems = COLLECTIBLE_SETS.flatMap((s) => s.items);
+  it('each set has about 12 items, as the brief asks', () => {
+    for (const set of COLLECTIBLE_SETS) expect(set.items).toHaveLength(12);
+  });
+  it('no item is in two sets', () => {
+    expect(new Set(allItems).size).toBe(allItems.length);
+  });
+  it('everything a child can own has a picture and a spoken name', () => {
+    for (const id of [...allItems, ...COSMETICS.map((c) => c.id)]) {
+      expect(artFor(id)?.emoji, id).toBeTruthy();
+      expect(STRINGS[`item.${id}`], id).toBeTruthy();
+    }
+  });
+  it('finishing a set unlocks a scene the bear can use', () => {
+    for (const set of COLLECTIBLE_SETS) {
+      expect(cosmeticFor(set.decoration)?.slot).toBe('background');
+    }
+  });
+  it('scenes are earned and everything else costs coins', () => {
+    for (const c of COSMETICS) {
+      if (c.id.startsWith('scene.')) expect(c.price).toBe(0);
+      else expect(c.price).toBeGreaterThan(0);
+    }
+  });
+  it('the day 2 present is a real accessory', () => {
+    expect(cosmeticFor(FIRST_ACCESSORY)?.slot).toBe('accessory');
+  });
+  it('every badge has a spoken name', () => {
+    for (const s of GRADE_1_SKILLS) expect(STRINGS[`badge.${s.id}`]).toBe(s.badgeName);
   });
 });
