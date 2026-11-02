@@ -10,6 +10,7 @@ import {
   Pairs,
   PlaceChart,
   RoundLine,
+  RunningTotal,
   Ruler,
 } from '../visuals/Numbers';
 import { CountedSides, Shape, Shares } from '../visuals/Shape';
@@ -143,7 +144,7 @@ function Steps({ problem }: { problem: Problem }) {
 
 function CoinHint({ problem }: { problem: Problem }) {
   const o = problem.operands;
-  if (o.kind === 'money') return <CoinRow items={o.items} running />;
+  if (o.kind === 'money') return <RunningTotal items={o.items} />;
   if (o.kind === 'change') return <p className="text-3xl font-extrabold">{o.cost}¢ → 100¢</p>;
   return <CoinRow items={[1, 5, 10, 25]} />;
 }

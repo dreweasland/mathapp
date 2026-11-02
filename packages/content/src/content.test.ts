@@ -4,15 +4,24 @@ import {
   FOUR_OP_STORIES,
   GENERATORS,
   TWO_STEP_STORIES,
+  activeGrade,
+  applyPlacement,
+  buildDailyQuest,
   generatorFor,
   mulberry32,
+  newSkillState,
+  parseFactId,
+  selectFrontier,
+  selectWarmupFacts,
+  startAtGrade,
+  unlockedFacts,
   type Difficulty,
 } from '@mathapp/engine';
 import { COLLECTIBLE_SETS, COSMETICS, FIRST_ACCESSORY, artFor, cosmeticFor } from './collectibles';
 import { GRADE_1_SKILLS } from './grade1';
 import { GRADE_2_SKILLS } from './grade2';
 import { GRADE_3_SKILLS } from './grade3';
-import { ALL_SKILLS, skillsInGrade } from './skills';
+import { ALL_SKILLS, skillById, skillsInGrade } from './skills';
 import { STRINGS, SCENE_COUNT, render } from './strings.en';
 
 const byId = new Map(ALL_SKILLS.map((s) => [s.id, s]));
@@ -151,5 +160,77 @@ describe('collectibles and cosmetics', () => {
   });
   it('every badge has a spoken name', () => {
     for (const s of ALL_SKILLS) expect(STRINGS[`badge.${s.id}`]).toBe(s.badgeName);
+  });
+});
+
+describe('a quest on every skill', () => {
+  const at = 1;
+  it.each(ALL_SKILLS.map((s) => s.id))('%s builds, with no repeats and only real answers', (id) => {
+    const order = skillById(id)?.order ?? 0;
+    const earlier = ALL_SKILLS.filter((s) => s.order < order).map((s) => s.id);
+    const states = applyPlacement(earlier, ALL_SKILLS, {}, 'c', at);
+    const quest = buildDailyQuest({
+      childId: 'c',
+      today: '2026-11-02',
+      questsCompleted: 10,
+      skills: ALL_SKILLS,
+      states,
+      factCards: [],
+    });
+    expect(quest.todaySkillId).toBe(id);
+    const items = quest.sections.flatMap((s) => s.items);
+    expect(items.length).toBeGreaterThan(5);
+    const skillItems = quest.sections.find((s) => s.kind === 'skill')?.items ?? [];
+    const seen = skillItems.map((i) => JSON.stringify(i.problem.operands));
+    expect(new Set(seen).size).toBeGreaterThanOrEqual(Math.min(seen.length, 4));
+    for (const { problem } of items) {
+      expect(problem.answer).not.toMatch(/undefined|NaN/);
+      const text = render(problem.speech.key, problem.speech.params);
+      expect(text).not.toMatch(/[{}]/);
+    }
+  });
+});
+
+describe('moving between grades', () => {
+  it('stays in Grade 1 until it is finished', () => {
+    expect(activeGrade(ALL_SKILLS, {})).toBe(1);
+  });
+  it('a child placed at Grade 2 works in Grade 2', () => {
+    const states = startAtGrade(2, ALL_SKILLS, {}, 'c', 1);
+    expect(activeGrade(ALL_SKILLS, states)).toBe(2);
+    expect(selectFrontier(ALL_SKILLS, states)?.grade).toBe(2);
+  });
+  it('a child placed at Grade 3 can reach Grade 3 skills with no Grade 2 gaps', () => {
+    const states = startAtGrade(3, ALL_SKILLS, {}, 'c', 1);
+    expect(activeGrade(ALL_SKILLS, states)).toBe(3);
+  });
+  it('earned things stay when moving up', () => {
+    const before = startAtGrade(1, ALL_SKILLS, {}, 'c', 1);
+    const earned = {
+      ...before,
+      '1.counting': { ...newSkillState('c', '1.counting'), mastery: 95, masteredAt: 5 },
+    };
+    const after = startAtGrade(2, ALL_SKILLS, earned, 'c', 9);
+    expect(after['1.counting']?.masteredAt).toBe(5);
+    expect(after['1.counting']?.mastery).toBe(95);
+  });
+  it('finishing everything leaves the top grade showing', () => {
+    const states = Object.fromEntries(
+      ALL_SKILLS.map((s) => [s.id, { ...newSkillState('c', s.id), mastery: 95, masteredAt: 1 }]),
+    );
+    expect(activeGrade(ALL_SKILLS, states)).toBe(3);
+  });
+  it('Grade 3 fact cards are reached through the warm-up once taught', () => {
+    const facts = unlockedFacts(['3.mult-facts']);
+    expect(facts).toHaveLength(100);
+    expect(facts.every((f) => f.op === 'mul')).toBe(true);
+  });
+  it('multiplication cards come in the brief order', () => {
+    const facts = unlockedFacts(['3.mult-facts']);
+    const picked = selectWarmupFacts([], facts, '2026-11-02', 3, mulberry32(1));
+    for (const id of picked) {
+      const { a, b } = parseFactId(id);
+      expect([a, b].some((n) => n === 1 || n === 2)).toBe(true);
+    }
   });
 });

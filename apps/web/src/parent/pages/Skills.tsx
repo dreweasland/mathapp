@@ -1,12 +1,14 @@
-import { GRADE_1_SKILLS } from '@mathapp/content';
-import { skillRows, skillSummary } from '@mathapp/engine';
+import { ALL_SKILLS } from '@mathapp/content';
+import { activeGrade, skillRows, skillSummary } from '@mathapp/engine';
 import { ERROR_LABEL, TREND_LABEL, shortDate, statusLabel } from '../labels';
 import type { PageProps } from '../ParentApp';
 
 export function Skills({ view }: PageProps) {
   const { states } = view.progress;
-  const rows = skillRows(GRADE_1_SKILLS, states, view.attempts);
-  const { mastered, needsHelp } = skillSummary(rows, GRADE_1_SKILLS, states);
+  const grade = activeGrade(ALL_SKILLS, states);
+  const shown = ALL_SKILLS.filter((s) => s.grade <= grade).reverse();
+  const rows = skillRows(shown, states, view.attempts, ALL_SKILLS);
+  const { mastered, needsHelp } = skillSummary(rows, ALL_SKILLS, states);
   return (
     <>
       <p>

@@ -90,6 +90,10 @@ async function problems(page: Page) {
     }
     const prompt = document.querySelector('[data-testid="prompt"]')?.getBoundingClientRect();
     const scrollsSideways = document.documentElement.scrollWidth > innerWidth;
+    // A bar in a centered column can collapse to nothing and still "fit".
+    for (const bar of document.querySelectorAll('[data-testid="fraction-bar"]')) {
+      if (bar.getBoundingClientRect().width < 150) tooSmall.push('fraction bar collapsed');
+    }
     return {
       tooSmall,
       offScreen,

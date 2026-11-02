@@ -219,6 +219,21 @@ describe('factGrid', () => {
     expect(sub.rows[3]?.[4]).toMatchObject({ id: 'sub:7-3', label: '7−3' });
     expect(sub.rows[10]?.[10]).toMatchObject({ id: 'sub:20-10' });
   });
+  it('lays out 100 multiplication and 100 division facts', () => {
+    for (const op of ['mul', 'div'] as const) {
+      const grid = factGrid(op, new Map());
+      expect(grid.rows.flat()).toHaveLength(100);
+      expect(new Set(grid.rows.flat().map((c) => c.id)).size).toBe(100);
+      expect(grid.side).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    }
+  });
+  it('puts × and ÷ facts at the right row and column', () => {
+    expect(factGrid('mul', new Map()).rows[2]?.[3]).toMatchObject({ id: 'mul:3x4', label: '3×4' });
+    expect(factGrid('div', new Map()).rows[2]?.[3]).toMatchObject({
+      id: 'div:12/3',
+      label: '12÷3',
+    });
+  });
   it('counts each level', () => {
     const grid = factGrid('add', new Map([seen('add:1+1', 1000), seen('add:1+2', 6000)]));
     expect(grid.counts).toEqual({ automatic: 1, quick: 0, working: 1, unseen: 119 });

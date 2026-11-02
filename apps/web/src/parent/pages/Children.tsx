@@ -1,4 +1,4 @@
-import { GRADE_1_SKILLS } from '@mathapp/content';
+import { ALL_SKILLS } from '@mathapp/content';
 import type { ChildProfile, DailyGoal } from '@mathapp/engine';
 import { useState } from 'react';
 import { AVATARS, DAILY_GOALS } from '../../screens/Setup';
@@ -78,7 +78,7 @@ function Edit({ view, services, reload, others }: PageProps & { others: ChildPro
           ))}
         </select>
       </label>
-      <p className="text-sm">Grade 1, animal theme. Grades 2 and 3 arrive with their content.</p>
+      <MoveGrade {...{ view, services, reload }} today="" />
       <StartAt {...{ view, services, reload }} today="" />
       {saved && (
         <p role="status" className="text-sm font-bold">
@@ -86,6 +86,32 @@ function Edit({ view, services, reload, others }: PageProps & { others: ChildPro
         </p>
       )}
     </section>
+  );
+}
+
+/** Only forward, so nothing a child has earned can move backward. */
+function MoveGrade({ view, services, reload }: PageProps) {
+  const { child } = view;
+  return (
+    <div className="flex flex-col gap-1" data-testid="grade">
+      <p className="font-bold">Grade {child.grade}</p>
+      {child.grade < 3 && (
+        <>
+          <p className="text-sm">Moving up counts every skill before it as passed.</p>
+          <button
+            type="button"
+            className="p-btn self-start"
+            onClick={() =>
+              void services.repo
+                .moveToGrade(child, (child.grade + 1) as ChildProfile['grade'])
+                .then(() => reload())
+            }
+          >
+            Move to Grade {child.grade + 1}
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -103,9 +129,9 @@ function StartAt({ view, services, reload }: PageProps) {
           onChange={(e) => setSkillId(e.target.value)}
         >
           <option value="">Choose a skill</option>
-          {GRADE_1_SKILLS.map((s) => (
+          {ALL_SKILLS.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name}
+              Grade {s.grade}: {s.name}
             </option>
           ))}
         </select>
@@ -138,6 +164,7 @@ function AddChild({ services, reload, taken }: PageProps & { taken: string[] }) 
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(free[0] ?? '');
   const [goal, setGoal] = useState<DailyGoal>('quest');
+  const [grade, setGrade] = useState<ChildProfile['grade']>(1);
   if (free.length === 0) return null;
   const chosen = free.includes(avatar) ? avatar : (free[0] as string);
   return (
@@ -168,6 +195,20 @@ function AddChild({ services, reload, taken }: PageProps & { taken: string[] }) 
           ))}
         </select>
       </label>
+      <label className="font-bold">
+        Grade
+        <select
+          className="p-input font-normal"
+          value={grade}
+          onChange={(e) => setGrade(Number(e.target.value) as ChildProfile['grade'])}
+        >
+          {[1, 2, 3].map((g) => (
+            <option key={g} value={g}>
+              Grade {g}
+            </option>
+          ))}
+        </select>
+      </label>
       <button
         type="button"
         className="p-btn p-btn-main"
@@ -175,7 +216,8 @@ function AddChild({ services, reload, taken }: PageProps & { taken: string[] }) 
         onClick={() =>
           void services.repo
             .addChild({ name: name.trim(), avatar: chosen, dailyGoal: goal })
-            .then((child) => {
+            .then(async (child) => {
+              if (grade > 1) await services.repo.moveToGrade(child, grade);
               setName('');
               return reload(child.id);
             })

@@ -1,7 +1,7 @@
 import {
   COLLECTIBLE_SETS,
   FIRST_ACCESSORY,
-  GRADE_1_SKILLS,
+  ALL_SKILLS,
   answerSpeech,
   cosmeticFor,
   render,
@@ -41,6 +41,7 @@ import {
   selectToday,
   settleItem,
   skipChallenge,
+  startAtGrade,
   startPlacement,
   startRun,
   submitAnswer,
@@ -57,6 +58,7 @@ import {
   type QuestRun,
   type Rng,
   type Session,
+  type SkillState,
   type Speech,
   type StreakEvent,
   type TryResult,
@@ -402,7 +404,7 @@ export function createGame(deps: GameDeps) {
   function ensureMissions(date: string) {
     const { child, progress: data } = get();
     if (!child || !data || get().missions.length > 0) return;
-    const today = selectToday(GRADE_1_SKILLS, data.states, child.questsCompleted);
+    const today = selectToday(ALL_SKILLS, data.states, child.questsCompleted);
     const missions = generateMissions(
       {
         childId: child.id,
@@ -473,7 +475,7 @@ export function createGame(deps: GameDeps) {
     const child = need(state.child);
     const at = now();
     const { states, card } = settleItem({
-      skills: GRADE_1_SKILLS,
+      skills: ALL_SKILLS,
       states: data.states,
       card: problem.factId ? data.cards.get(problem.factId) : undefined,
       childId: child.id,
@@ -498,7 +500,7 @@ export function createGame(deps: GameDeps) {
   }
 
   const fastMsFor = (problem: Problem) =>
-    GRADE_1_SKILLS.find((s) => s.id === problem.skillId)?.fastMs ?? 3000;
+    ALL_SKILLS.find((s) => s.id === problem.skillId)?.fastMs ?? 3000;
 
   function beginQuest() {
     const state = get();
@@ -516,7 +518,7 @@ export function createGame(deps: GameDeps) {
       childId: child.id,
       today: date,
       questsCompleted: child.questsCompleted,
-      skills: GRADE_1_SKILLS,
+      skills: ALL_SKILLS,
       states: data.states,
       factCards: [...data.cards.values()],
     });
@@ -589,8 +591,21 @@ export function createGame(deps: GameDeps) {
       else set({ screen: 'who' });
     },
 
+    /** A child starting past Grade 1 skips the warm-up, which only covers Grade 1. */
     async createChild(input: NewChild) {
-      await actions.enter(await children.create(input));
+      const child = await children.create(input);
+      if (child.grade === 1) {
+        await actions.enter(child);
+        return;
+      }
+      const at = now();
+      const states = startAtGrade(child.grade, ALL_SKILLS, {}, child.id, at);
+      const placed = { ...child, placedAt: at, updatedAt: at };
+      await repo.save({
+        child: placed,
+        skills: Object.values(states).filter((s): s is SkillState => s !== undefined),
+      });
+      await actions.enter(placed);
     },
 
     /** Loads a child and settles any missed days. Safe to repeat. */
@@ -599,7 +614,7 @@ export function createGame(deps: GameDeps) {
       const at = now();
       const date = today();
       const settled = reconcileStreak(data.streak, date, at);
-      const states = refreshUnlocks(GRADE_1_SKILLS, data.states, child.id, at);
+      const states = refreshUnlocks(ALL_SKILLS, data.states, child.id, at);
       const sessions = await repo.sessionsOn(child.id, date);
       const note = settled.events.map(eventLine).find((l) => l !== undefined);
       const session = sessions.find((s) => s.type === 'quest' && s.run);
@@ -713,7 +728,7 @@ export function createGame(deps: GameDeps) {
       const child = need(current.child);
       const data = need(current.progress);
       const at = now();
-      const states = applyPlacement(state.passed, GRADE_1_SKILLS, data.states, child.id, at);
+      const states = applyPlacement(state.passed, ALL_SKILLS, data.states, child.id, at);
       const placed: ChildProfile = { ...child, placedAt: at, updatedAt: at };
       const session = { ...need(current.session), endedAt: at, updatedAt: at };
       const skills = Object.values(states).filter((s) => s !== undefined);

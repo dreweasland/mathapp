@@ -1,4 +1,4 @@
-import type { DailyGoal } from '@mathapp/engine';
+import type { ChildProfile, DailyGoal } from '@mathapp/engine';
 import { useState, type ReactNode } from 'react';
 import { APP_NAME } from '../config';
 import { Mascot } from '../ui/Mascot';
@@ -53,7 +53,12 @@ export function Setup({
   onDone,
   restore,
 }: {
-  onDone: (name: string, avatar: string, dailyGoal: DailyGoal) => void;
+  onDone: (
+    name: string,
+    avatar: string,
+    dailyGoal: DailyGoal,
+    grade: ChildProfile['grade'],
+  ) => void;
   /** Loaded only if asked for, since most setups have nothing to bring. */
   restore: ReactNode;
 }) {
@@ -62,6 +67,7 @@ export function Setup({
   const [avatar, setAvatar] = useState(AVATARS[0] as string);
   const [goal, setGoal] = useState<DailyGoal>('quest');
   const [restoring, setRestoring] = useState(false);
+  const [grade, setGrade] = useState<ChildProfile['grade']>(1);
   if (needsInstall() && !skipped) return <InstallSteps onSkip={() => setSkipped(true)} />;
   if (restoring) return restore;
   return (
@@ -90,6 +96,19 @@ export function Setup({
           </button>
         ))}
       </div>
+      <div className="grid w-full max-w-sm grid-cols-3 gap-3" role="group" aria-label="grade">
+        {([1, 2, 3] as const).map((g) => (
+          <button
+            key={g}
+            type="button"
+            aria-pressed={grade === g}
+            onClick={() => setGrade(g)}
+            className={`tap min-h-16 px-2 text-lg font-bold ${grade === g ? 'tap-primary' : ''}`}
+          >
+            Grade {g}
+          </button>
+        ))}
+      </div>
       <div className="grid w-full max-w-sm grid-cols-2 gap-3" role="group" aria-label="daily goal">
         {DAILY_GOALS.map(({ value, label }) => (
           <button
@@ -107,7 +126,7 @@ export function Setup({
         type="button"
         aria-label="done"
         disabled={name.trim() === ''}
-        onClick={() => onDone(name.trim(), avatar, goal)}
+        onClick={() => onDone(name.trim(), avatar, goal, grade)}
         className="tap tap-primary min-h-20 w-full max-w-sm text-4xl font-extrabold"
       >
         ✓

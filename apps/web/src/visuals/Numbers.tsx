@@ -178,26 +178,25 @@ export function Coin({ cents }: { cents: number }) {
   );
 }
 
-export function CoinRow({ items, running = false }: { items: number[]; running?: boolean }) {
-  const totals = items.map((_, i) => items.slice(0, i + 1).reduce((s, c) => s + c, 0));
-  const dollars = items.some((c) => c >= 100);
+export function CoinRow({ items }: { items: number[] }) {
   return (
     <div className="flex flex-wrap items-end justify-center gap-1.5" role="img" aria-label="money">
       {items.map((coin, i) => (
-        <div key={i} className="flex flex-col items-center gap-0.5">
-          <Coin cents={coin} />
-          {running && (
-            <span className="text-base font-extrabold tabular-nums">
-              {i === items.length - 1
-                ? '?'
-                : dollars
-                  ? `$${(totals[i] as number) / 100}`
-                  : `${totals[i]}¢`}
-            </span>
-          )}
-        </div>
+        <Coin key={i} cents={coin} />
       ))}
     </div>
+  );
+}
+
+/** Counting up, one coin at a time, and stopping short of the total. */
+export function RunningTotal({ items }: { items: number[] }) {
+  const totals = items.map((_, i) => items.slice(0, i + 1).reduce((s, c) => s + c, 0));
+  const dollars = items.some((c) => c >= 100);
+  const label = (n: number) => (dollars ? `$${n / 100}` : `${n}¢`);
+  return (
+    <p className="text-center text-2xl font-extrabold tabular-nums" data-testid="running-total">
+      {[...totals.slice(0, -1).map(label), '?'].join(' → ')}
+    </p>
   );
 }
 
@@ -216,7 +215,7 @@ export function Ruler({
   const total = Math.max(length + 1, unit === 'in' ? 9 : 16);
   const px = Math.min(UNIT_PX[unit], Math.floor(330 / total));
   return (
-    <div className="max-w-full" role="img" aria-label="ruler" data-testid="ruler">
+    <div className="ml-2 max-w-full" role="img" aria-label="ruler" data-testid="ruler">
       <div
         data-object
         className="mb-1 h-6 rounded-r-full border-2 border-ink bg-sun"
@@ -257,10 +256,10 @@ export function Frac({ n, d, blank = false }: { n: number; d: number; blank?: bo
   );
 }
 
-export function FractionBar({ n, d, width = 'w-full' }: { n: number; d: number; width?: string }) {
+export function FractionBar({ n, d }: { n: number; d: number }) {
   return (
     <div
-      className={`flex h-12 max-w-72 overflow-hidden rounded-md border-3 border-ink ${width}`}
+      className={'flex h-12 w-72 max-w-full overflow-hidden rounded-md border-3 border-ink'}
       role="img"
       aria-label={`${n} of ${d} parts colored`}
       data-testid="fraction-bar"

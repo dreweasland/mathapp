@@ -1,5 +1,6 @@
-import { GRADE_1_SKILLS } from '@mathapp/content';
+import { ALL_SKILLS, skillsInGrade } from '@mathapp/content';
 import {
+  activeGrade,
   activityBetween,
   addDays,
   dailyActivity,
@@ -123,18 +124,27 @@ function Report({ view, today }: { view: Dashboard; today: string }) {
   const from = addDays(today, 1 - REPORT_DAYS);
   const month = activityBetween(from, today, sessions, attempts);
   const days = dailyActivity(today, REPORT_DAYS, sessions, attempts);
-  const rows = skillRows(GRADE_1_SKILLS, progress.states, attempts);
-  const summary = skillSummary(rows, GRADE_1_SKILLS, progress.states);
-  const add = factGrid('add', progress.cards);
-  const sub = factGrid('sub', progress.cards);
-  const automatic = add.counts.automatic + sub.counts.automatic;
+  // One page, so one grade: the one the child is in now, with earlier grades as a line.
+  const grade = activeGrade(ALL_SKILLS, progress.states);
+  const rows = skillRows(skillsInGrade(grade), progress.states, attempts, ALL_SKILLS);
+  const summary = skillSummary(rows, ALL_SKILLS, progress.states);
+  const earlier = ALL_SKILLS.filter((s) => s.grade < grade);
+  const earlierDone = earlier.filter((s) => {
+    const state = progress.states[s.id];
+    return state?.masteredAt !== undefined || state?.placedOut;
+  }).length;
+  const times = grade === 3;
+  const left = factGrid(times ? 'mul' : 'add', progress.cards);
+  const right = factGrid(times ? 'div' : 'sub', progress.cards);
+  const automatic = left.counts.automatic + right.counts.automatic;
+  const factTotal = left.rows.flat().length + right.rows.flat().length;
   const started = rows.filter((r) => r.attempts > 0).length;
   return (
     <>
       <div className="top">
         <h1>{child.name}: math progress</h1>
         <p>
-          Grade {child.grade} · {shortDate(new Date(`${from}T12:00`).getTime())} to{' '}
+          Grade {grade} · {shortDate(new Date(`${from}T12:00`).getTime())} to{' '}
           {shortDate(new Date(`${today}T12:00`).getTime())}, {today.slice(0, 4)}
         </p>
       </div>
@@ -187,30 +197,41 @@ function Report({ view, today }: { view: Dashboard; today: string }) {
                 {ERROR_LABEL[summary.commonError].toLowerCase()}.
               </li>
             )}
+            {earlier.length > 0 && (
+              <li>
+                <strong>Earlier grades:</strong> {earlierDone} of {earlier.length} skills mastered
+                or passed.
+              </li>
+            )}
             <li>
-              <strong>Fact fluency:</strong> {automatic} of 242 addition and subtraction facts are
+              <strong>Fact fluency:</strong> {automatic} of {factTotal}{' '}
+              {times ? 'multiplication and division' : 'addition and subtraction'} facts are
               automatic.
             </li>
           </>
         )}
       </ul>
       <section>
-        <h2>Skills (selected Grade 1 standards)</h2>
+        <h2>Skills (selected Grade {grade} standards)</h2>
         <SkillTable rows={rows} />
       </section>
       <section>
-        <h2>Fact fluency: addends 0–10 and their subtraction facts</h2>
+        <h2>
+          {times
+            ? 'Fact fluency: factors 1–10 and their division facts'
+            : 'Fact fluency: addends 0–10 and their subtraction facts'}
+        </h2>
         <div className="facts">
           <div>
-            <p>Row + column</p>
-            <FactTable grid={add} cell={15} />
+            <p>{times ? 'Row × column' : 'Row + column'}</p>
+            <FactTable grid={left} cell={times ? 16 : 15} />
           </div>
           <div>
-            <p>(Row + column) − row</p>
-            <FactTable grid={sub} cell={15} />
+            <p>{times ? '(Row × column) ÷ row' : '(Row + column) − row'}</p>
+            <FactTable grid={right} cell={times ? 16 : 15} />
           </div>
           <div className="legend">
-            <HeatLegend grids={[add, sub]} />
+            <HeatLegend grids={[left, right]} />
           </div>
         </div>
       </section>

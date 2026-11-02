@@ -27,8 +27,8 @@ function Screen() {
     case 'setup':
       return (
         <Setup
-          onDone={(name, avatar, dailyGoal) =>
-            void actions.createChild({ name, avatar, dailyGoal })
+          onDone={(name, avatar, dailyGoal, grade) =>
+            void actions.createChild({ name, avatar, dailyGoal, grade })
           }
           restore={
             <Suspense fallback={null}>

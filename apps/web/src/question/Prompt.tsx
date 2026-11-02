@@ -232,10 +232,8 @@ function laterKinds(problem: Problem, o: Operands) {
           <Frac n={o.bn} d={o.bd} />
         </Row>
       ) : (
-        <>
-          <FractionBar n={o.an} d={o.ad} />
-          <FractionBar n={o.bn} d={o.bd} />
-        </>
+        // No bars here: seeing their size is the hint, and it comes after a first try.
+        <Big>⚖️</Big>
       );
     case 'fraction-equal':
       return (

@@ -7,7 +7,7 @@
  *   npm run demo -- --answers       also show answers and choices
  */
 import { readFileSync } from 'node:fs';
-import { GRADE_1_SKILLS, render } from '@mathapp/content';
+import { ALL_SKILLS, render } from '@mathapp/content';
 import {
   applyPlacement,
   buildDailyQuest,
@@ -81,21 +81,21 @@ function answerLine(problem: Problem): string {
 
 let states = fixture.skillStates;
 if (fixture.placement) {
-  states = applyPlacement(fixture.placement, GRADE_1_SKILLS, states, fixture.childId, AT);
+  states = applyPlacement(fixture.placement, ALL_SKILLS, states, fixture.childId, AT);
 }
-states = refreshUnlocks(GRADE_1_SKILLS, states, fixture.childId, AT);
+states = refreshUnlocks(ALL_SKILLS, states, fixture.childId, AT);
 
 const { streak, events } = reconcileStreak(fixture.streak, today, AT);
 const quest = buildDailyQuest({
   childId: fixture.childId,
   today,
   questsCompleted: fixture.questsCompleted,
-  skills: GRADE_1_SKILLS,
+  skills: ALL_SKILLS,
   states,
   factCards: fixture.factCards,
   ...(seedText ? { seed: Number(seedText) } : {}),
 });
-const skill = GRADE_1_SKILLS.find((s) => s.id === quest.todaySkillId);
+const skill = ALL_SKILLS.find((s) => s.id === quest.todaySkillId);
 const missions = generateMissions(
   {
     childId: fixture.childId,

@@ -1,4 +1,4 @@
-import { GRADE_1_SKILLS } from '@mathapp/content';
+import { skillById } from '@mathapp/content';
 import { chestTierTomorrow } from '@mathapp/engine';
 import { motion } from 'framer-motion';
 import { SKILL_ICON } from '../game/art';
@@ -41,7 +41,7 @@ export function Celebrate() {
           data-testid="new-badge"
           className="tap tap-primary map-glow px-4 py-2 text-3xl font-extrabold"
         >
-          {SKILL_ICON[id]} {GRADE_1_SKILLS.find((s) => s.id === id)?.badgeName}
+          {SKILL_ICON[id]} {skillById(id)?.badgeName}
         </div>
       ))}
       <div className="flex items-end gap-3">
