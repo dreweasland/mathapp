@@ -59,6 +59,19 @@ export const STRINGS: Record<string, string> = {
   'q.measure-middle': 'Tap the one in the middle. Not the longest, and not the shortest.',
   ...WORD_STORIES,
 
+  // Saying the answer out loud, when it's shown
+  'answer.number': 'The answer is {value}.',
+  'answer.time-hour': "It's {hour} o'clock.",
+  'answer.time-half': "It's half past {hour}.",
+  'answer.shape': 'This one is the {shape}.',
+  'answer.this-one': 'It is this one.',
+  'answer.bigger': '{n} is bigger.',
+  'answer.same': 'They are the same.',
+  'answer.greater': '{a} is greater than {b}.',
+  'answer.less': '{a} is less than {b}.',
+  'answer.equal': '{a} is equal to {b}.',
+  'answer.family': '{whole} take away {a} is {b}.',
+
   // Skills, read aloud on the map
   'skill.1.counting': 'Counting',
   'skill.1.ten-frame': 'Ten frames',
@@ -84,11 +97,25 @@ export const STRINGS: Record<string, string> = {
   'feedback.recovered': 'You kept trying, and you got it!',
   'feedback.tricky-solved': 'That one was tricky and you got it!',
 
+  // Home and first run
+  'home.start': "Tap the big button to start today's quest.",
+  'home.resume': 'Tap the big button to keep going.',
+  'home.done': "You finished today's quest! See you tomorrow!",
+  'placement.intro': "Let's see what you know. Just try your best!",
+  'placement.next': 'Thanks!',
+  'placement.done': 'Thanks for showing me. Now we can start!',
+
+  // Teaching
+  'worked.watch': 'Watch how this one works.',
+  'worked.next': 'Now tap the arrow.',
+
   // Daily loop
   'quest.warmup': "Let's warm up!",
   'quest.skill': "Here's today's adventure.",
   'quest.challenge': 'Want a challenge? You can say yes or skip it.',
   'quest.challenge-skip': 'No problem. Great work today!',
+  'quest.challenge-start': 'Here comes the challenge!',
+  'quest.coins': 'You earned {coins} coins!',
   'quest.done': 'You did it! See you tomorrow!',
   'quest.rough-day': 'You kept going today. See you tomorrow!',
   'streak.new': 'New streak starts today! Your best was {best}.',

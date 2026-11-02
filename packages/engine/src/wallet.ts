@@ -5,6 +5,7 @@ export const COINS = {
   fastBonus: 1,
   recoveryBonus: 1,
   questComplete: 10,
+  challengeComplete: 5,
 } as const;
 
 export const newWallet = (childId: string): Wallet => ({

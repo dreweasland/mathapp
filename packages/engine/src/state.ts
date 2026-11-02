@@ -6,6 +6,8 @@
  * - Every row has `updatedAt`, so a later sync layer can diff by it.
  * - All ids are strings; `childId` scopes every row to one profile.
  */
+import type { QuestRun } from './questRun';
+
 export type LocalDate = string;
 export type DailyGoal = 'quest' | 'quest+challenge';
 export type Theme = 'animals';
@@ -29,6 +31,8 @@ export interface ChildProfile {
   settings: ChildSettings;
   /** Completed quests, so "alternating days" isn't skewed by a missed day. */
   questsCompleted: number;
+  /** Set when the first-run placement warm-up ends. */
+  placedAt?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -103,6 +107,8 @@ export interface Session {
   correctCount: number;
   coinsEarned: number;
   completedQuest: boolean;
+  /** The quest in progress. Cleared when it ends, so old rows stay small. */
+  run?: QuestRun;
   updatedAt: number;
 }
 
