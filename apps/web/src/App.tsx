@@ -1,7 +1,8 @@
 import { MotionConfig } from 'framer-motion';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useGame } from './game/GameProvider';
 import { Celebrate } from './screens/Celebrate';
+import { Cheer } from './screens/Cheer';
 import { ChestReveal } from './screens/ChestReveal';
 import { Home } from './screens/Home';
 import { SkillMap } from './screens/Map';
@@ -11,6 +12,10 @@ import { Setup } from './screens/Setup';
 import { Shop } from './screens/Shop';
 import { Stickers } from './screens/Stickers';
 import { Trophies } from './screens/Trophies';
+import { Who } from './screens/Who';
+
+/** Grown-ups only, so the child's first load doesn't carry it. Precached for offline. */
+const Parent = lazy(() => import('./parent/entry'));
 
 function Screen() {
   const { actions, use } = useGame();
@@ -19,11 +24,27 @@ function Screen() {
     case 'loading':
       return null;
     case 'setup':
-      return <Setup onDone={(name, avatar) => void actions.createChild({ name, avatar })} />;
+      return (
+        <Setup
+          onDone={(name, avatar, dailyGoal) =>
+            void actions.createChild({ name, avatar, dailyGoal })
+          }
+        />
+      );
+    case 'who':
+      return <Who />;
+    case 'parent':
+      return (
+        <Suspense fallback={null}>
+          <Parent onExit={() => void actions.closeParent()} />
+        </Suspense>
+      );
     case 'placement':
       return <Placement />;
     case 'home':
       return <Home />;
+    case 'cheer':
+      return <Cheer />;
     case 'quest':
       return <Quest />;
     case 'celebrate':

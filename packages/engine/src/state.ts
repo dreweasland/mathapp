@@ -110,6 +110,8 @@ export interface Session {
   correctCount: number;
   coinsEarned: number;
   completedQuest: boolean;
+  /** Kept after the run is cleared, for the parent's daily-goal view. */
+  challengeDone?: boolean;
   /** The quest in progress. Cleared when it ends, so old rows stay small. */
   run?: QuestRun;
   updatedAt: number;

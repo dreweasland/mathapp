@@ -1,4 +1,11 @@
-import { chestTierTomorrow, weekStrip, type Mission } from '@mathapp/engine';
+import {
+  activeGoal,
+  chestTierTomorrow,
+  goalProgress,
+  isReached,
+  weekStrip,
+  type Mission,
+} from '@mathapp/engine';
 import { useEffect } from 'react';
 import { APP_NAME } from '../config';
 import { useGame } from '../game/GameProvider';
@@ -83,6 +90,46 @@ function Missions() {
   );
 }
 
+/** A grown-up's real-world goal, as a picture and a bar. */
+function GoalBar() {
+  const { use, actions } = useGame();
+  const goals = use((s) => s.progress?.goals);
+  const today = use((s) => s.enteredOn);
+  const goal = goals && today ? activeGoal(goals, today) : undefined;
+  if (!goal) return null;
+  const reached = isReached(goal);
+  const line = reached
+    ? { key: 'goal.ready', params: { reward: goal.rewardText } }
+    : {
+        key: `goal.${goal.unit}`,
+        params: { done: goal.progress, target: goal.target, reward: goal.rewardText },
+      };
+  return (
+    <button
+      type="button"
+      aria-label="goal"
+      data-testid="goal"
+      data-reached={reached}
+      onClick={() => actions.say(line)}
+      className={`tap w-full max-w-md gap-2 px-3 ${reached ? 'tap-answer' : ''}`}
+    >
+      <span aria-hidden="true" className="text-3xl">
+        {goal.imageKey}
+      </span>
+      <span className="h-4 flex-1 overflow-hidden rounded-full border-2 border-ink bg-white">
+        <span
+          data-testid="goal-fill"
+          className="block h-full bg-sun"
+          style={{ width: `${goalProgress(goal) * 100}%` }}
+        />
+      </span>
+      <span className="text-lg font-extrabold">
+        {reached ? '🎉' : `${goal.progress}/${goal.target}`}
+      </span>
+    </button>
+  );
+}
+
 export function Home() {
   const { actions, use } = useGame();
   const child = use((s) => s.child);
@@ -93,6 +140,7 @@ export function Home() {
   const todayDone = use((s) => s.todayDone);
   const resuming = use((s) => s.run !== undefined);
   const saveFailed = use((s) => s.saveFailed);
+  const backup = use((s) => s.backupDue);
   const current = streak?.current ?? 0;
   const best = streak?.best ?? 0;
   const shields = streak?.shields ?? 0;
@@ -105,9 +153,14 @@ export function Home() {
     <main className="screen items-center justify-between text-center">
       <h1 className="sr-only">{APP_NAME}</h1>
       <header className="flex w-full items-center justify-between text-2xl font-extrabold">
-        <span aria-label={child?.name} className="text-3xl">
+        <button
+          type="button"
+          aria-label={child?.name}
+          className="flex min-h-16 min-w-16 items-center justify-center text-3xl"
+          onClick={() => void actions.showWho()}
+        >
           {child?.avatar}
-        </span>
+        </button>
         <span className="flex items-center gap-3">
           <button
             type="button"
@@ -157,6 +210,7 @@ export function Home() {
           <WeekDots />
         </div>
         <div className="flex w-full flex-col items-center gap-2">
+          <GoalBar />
           <Missions />
 
           {unopened > 0 && nextChest ? (
@@ -206,6 +260,7 @@ export function Home() {
           Grown-ups: this device couldn't save progress. Check that storage isn't full.
         </p>
       )}
+      {backup && <p className="text-sm">Grown-ups: it's time to save a backup.</p>}
       {needsInstall() && (
         <p className="text-sm">
           Grown-ups: add this app to the Home Screen so progress stays safe.
