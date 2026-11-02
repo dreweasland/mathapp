@@ -105,6 +105,8 @@ export const STRINGS: Record<string, string> = {
   'placement.next': 'Thanks!',
   'placement.done': 'Thanks for showing me. Now we can start!',
 
+  digit: '{digit}',
+
   // Teaching
   'worked.watch': 'Watch how this one works.',
   'worked.next': 'Now tap the arrow.',
