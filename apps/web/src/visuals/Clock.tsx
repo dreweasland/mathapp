@@ -24,7 +24,7 @@ export function Clock({ hour, minute, highlight = [], hands = true, size = 120 }
       width={size}
       height={size}
       role="img"
-      aria-label={`clock showing ${hour}:${minute === 0 ? '00' : minute}`}
+      aria-label={`clock showing ${hour}:${String(minute).padStart(2, '0')}`}
       data-hour={hour}
       data-minute={minute}
     >

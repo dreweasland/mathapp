@@ -17,4 +17,5 @@ export * from './missions';
 export * from './quest';
 export * from './questRun';
 export * from './rewards';
+export { formatTime } from './problem';
 export * from './report';

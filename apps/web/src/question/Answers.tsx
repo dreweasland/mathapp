@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Problem } from '@mathapp/engine';
 import { Clock } from '../visuals/Clock';
 import { LengthBar, lengthObjects } from '../visuals/Lengths';
+import { CoinRow, Frac } from '../visuals/Numbers';
 import { Shape, Shares } from '../visuals/Shape';
 import { orderedChoices, prettyMath } from './format';
 
@@ -57,6 +58,13 @@ function ChoiceFace({ problem, value }: { problem: Problem; value: string }) {
   if (o.kind === 'compare' && o.form === 'tap') {
     return <>{value === 'left' ? o.a : value === 'right' ? o.b : '='}</>;
   }
+  if (o.kind === 'fraction-compare' && o.form === 'tap') {
+    if (value === 'left') return <Frac n={o.an} d={o.ad} />;
+    return value === 'right' ? <Frac n={o.bn} d={o.bd} /> : <>=</>;
+  }
+  if (o.kind === 'make-amount') return <CoinRow items={value.split('+').map(Number)} />;
+  const fraction = /^(\d+)\/(\d+)$/.exec(value);
+  if (fraction) return <Frac n={Number(fraction[1])} d={Number(fraction[2])} />;
   return <>{o.kind === 'family' && o.ask === 'belongs' ? prettyMath(value) : value}</>;
 }
 
@@ -66,6 +74,11 @@ function choiceLabel(problem: Problem, value: string) {
     return value === 'left' ? String(o.a) : value === 'right' ? String(o.b) : 'same';
   }
   if (o.kind === 'lengths') return `choice ${value}`;
+  if (o.kind === 'fraction-compare' && o.form === 'tap') {
+    if (value === 'left') return `${o.an} over ${o.ad}`;
+    return value === 'right' ? `${o.bn} over ${o.bd}` : 'same';
+  }
+  if (o.kind === 'make-amount') return `coins ${value.replaceAll('+', ', ')}`;
   return value;
 }
 
@@ -73,6 +86,7 @@ function layoutFor(problem: Problem, count: number) {
   const o = problem.operands;
   if (o.kind === 'lengths') return 'grid-cols-1';
   if (o.kind === 'family' && o.ask === 'belongs') return 'grid-cols-1';
+  if (o.kind === 'make-amount') return 'grid-cols-1';
   if (problem.questionType === 'clock-face') return 'grid-cols-2';
   return count === 3 ? 'grid-cols-3' : 'grid-cols-2';
 }
@@ -103,7 +117,8 @@ export function Choices({ problem, onAnswer, tried, reveal, locked }: AnswerProp
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
-const MAX_DIGITS = 3;
+/** Within 1000, so the largest answer has four digits. */
+const MAX_DIGITS = 4;
 
 export function NumberPad({
   problem,
