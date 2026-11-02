@@ -232,7 +232,7 @@ function Report({ view, today }: { view: Dashboard; today: string }) {
 export function reportDoc(view: Dashboard, today: string): string {
   const body = renderToStaticMarkup(<Report view={view} today={today} />);
   const title = `${view.child.name} math progress ${today}`.replace(/[<&]/g, '');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>${CSS}</style></head><body>${body}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>${CSS}</style></head><body><main>${body}</main></body></html>`;
 }
 
 export const reportFileName = (name: string, today: string): string =>

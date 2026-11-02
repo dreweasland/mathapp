@@ -52,7 +52,7 @@ export function ParentApp({ services, onExit }: { services: ParentServices; onEx
   const shared = { view, today, services, reload };
 
   return (
-    <div className="parent" data-testid="parent">
+    <main className="parent" data-testid="parent">
       <div className="parent-page">
         <header className="flex items-center justify-between gap-2">
           {page ? (
@@ -112,7 +112,7 @@ export function ParentApp({ services, onExit }: { services: ParentServices; onEx
         {page === 'children' && <Children {...shared} everyone={children} />}
         {page === 'data' && <Data {...shared} />}
       </div>
-    </div>
+    </main>
   );
 }
 

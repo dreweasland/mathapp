@@ -10,6 +10,7 @@ export function Who() {
   const canReturn = use((s) => s.progress !== undefined) && current !== undefined;
   return (
     <main className="screen items-center justify-between text-center">
+      <h1 className="sr-only">Who is playing?</h1>
       <header className="flex w-full items-center justify-between">
         {canReturn ? (
           <BigButton

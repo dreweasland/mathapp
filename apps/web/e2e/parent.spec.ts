@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { devices, expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import {
   openChests,
@@ -11,6 +11,7 @@ import {
 } from './helpers';
 
 const PIN = ['1', '2', '3', '4'];
+const BASE = 'http://localhost:4173';
 
 async function tapPin(page: Page, digits: string[]) {
   const pad = page.getByTestId('pin-pad');
@@ -345,6 +346,33 @@ test('backup and restore bring progress back, and a bad file changes nothing', a
   await expect(page.getByTestId('streak')).toContainText('1');
 });
 
+test('a new phone restores from Setup, with no fake child first', async ({ page, context }) => {
+  await page.addInitScript(() => Object.assign(navigator, { canShare: undefined }));
+  await setUpChild(page);
+  await finishQuest(page);
+  await openDashboard(page);
+  await page.getByRole('button', { name: /^Backup/ }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save backup' }).click();
+  const text = await readFile(await (await download).path(), 'utf8');
+
+  const phone = await context.browser()?.newContext({ ...devices['iPhone 15'], baseURL: BASE });
+  const fresh = await (phone as BrowserContext).newPage();
+  await stubSpeech(fresh);
+  await fresh.goto('/');
+  await fresh.getByRole('button', { name: 'Continue in Safari for now' }).click();
+  await fresh.getByRole('button', { name: /Restore a backup/ }).click();
+  await fresh.getByLabel('Choose a backup file').setInputFiles({
+    name: 'backup.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(text),
+  });
+  await expect(fresh.getByTestId('restore-confirm')).toContainText('Sam');
+  await fresh.getByRole('button', { name: 'Replace and restore' }).click();
+  await expect(fresh.getByTestId('streak')).toContainText('1');
+  await (phone as BrowserContext).close();
+});
+
 test('the dashboard opens offline, including on the first visit to it', async ({
   page,
   context,
@@ -411,6 +439,47 @@ for (const viewport of HOME_VIEWS) {
       await expect(page.getByTestId('grown-up-note')).toContainText('save a backup');
       await expect(page.getByTestId('grown-up-note')).toBeInViewport({ ratio: 1 });
       expect(await offScreen()).toEqual([]);
+    });
+  });
+}
+
+/** Code can scroll a hidden overflow but a thumb can't, so clicks alone don't prove reach. */
+const unreachable = (page: Page) =>
+  page.evaluate(() => {
+    const main = document.querySelector('main') as HTMLElement;
+    if (getComputedStyle(main).overflowY === 'auto') return [];
+    return [...main.querySelectorAll('button')]
+      .filter((el) => {
+        const box = el.getBoundingClientRect();
+        return box.bottom > innerHeight + 0.5 || box.top < -0.5;
+      })
+      .map((el) => el.getAttribute('aria-label') ?? el.textContent);
+  });
+
+for (const viewport of HOME_VIEWS) {
+  test.describe(`Grown-up screens at ${viewport.width}x${viewport.height}`, () => {
+    test.use({ viewport });
+    test('can all be reached by hand, and Who and Cheer fit', async ({ page }) => {
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Continue in Safari for now' }).click();
+      await expect(page.getByLabel("Child's name")).toBeVisible();
+      expect(await unreachable(page)).toEqual([]);
+      await setUpChild(page, true);
+      await page.getByRole('button', { name: 'Sam' }).click();
+      await expect(page.getByTestId('who')).toBeVisible();
+      expect(await unreachable(page)).toEqual([]);
+      await page.getByRole('button', { name: 'grown-ups' }).click();
+      await expect(page.getByTestId('pin-pad')).toBeVisible();
+      expect(await unreachable(page)).toEqual([]);
+      await createPin(page);
+      await page.getByRole('button', { name: /^Goals & cheers/ }).click();
+      await page.getByRole('button', { name: 'send 🚀' }).click();
+      await expect(page.getByTestId('cheers-waiting')).toBeVisible();
+      await page.getByRole('button', { name: '‹ Back' }).click();
+      await leave(page);
+      await page.getByRole('button', { name: 'start quest' }).click();
+      await expect(page.getByTestId('cheer')).toBeVisible();
+      expect(await unreachable(page)).toEqual([]);
     });
   });
 }

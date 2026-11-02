@@ -16,6 +16,7 @@ import { Who } from './screens/Who';
 
 /** Grown-ups only, so the child's first load doesn't carry it. Precached for offline. */
 const Parent = lazy(() => import('./parent/entry'));
+const SetupRestore = lazy(() => import('./parent/restoreEntry'));
 
 function Screen() {
   const { actions, use } = useGame();
@@ -28,6 +29,11 @@ function Screen() {
         <Setup
           onDone={(name, avatar, dailyGoal) =>
             void actions.createChild({ name, avatar, dailyGoal })
+          }
+          restore={
+            <Suspense fallback={null}>
+              <SetupRestore onRestored={() => void actions.open()} />
+            </Suspense>
           }
         />
       );

@@ -73,7 +73,9 @@ export function Overview({ view, today, services, reload }: PageProps) {
         <table className="w-full text-sm">
           <thead>
             <tr>
-              <th />
+              <th>
+                <span className="sr-only">Period</span>
+              </th>
               <th className="px-1 text-right">Quests</th>
               <th className="px-1 text-right">Min</th>
               <th className="px-1 text-right">Problems</th>

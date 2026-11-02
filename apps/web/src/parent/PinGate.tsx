@@ -38,7 +38,7 @@ function Frame({
   onExit: () => void;
 }) {
   return (
-    <main className="screen items-center justify-center gap-4 text-center">
+    <main className="screen items-center justify-center-safe gap-4 overflow-y-auto text-center">
       <div className="flex w-full max-w-xs items-center justify-between">
         <h1 className="text-2xl font-extrabold">{title}</h1>
         <button type="button" aria-label="close" className="tap text-2xl" onClick={onExit}>

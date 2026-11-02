@@ -12,6 +12,7 @@ export function Cheer() {
       data-testid="cheer"
       data-kind={cheer?.audio ? 'voice' : 'emoji'}
     >
+      <h1 className="sr-only">A cheer from your grown-up</h1>
       <MyMascot mood="cheer" size={120} />
       <button
         type="button"

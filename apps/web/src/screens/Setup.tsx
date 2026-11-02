@@ -1,5 +1,5 @@
 import type { DailyGoal } from '@mathapp/engine';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { APP_NAME } from '../config';
 import { Mascot } from '../ui/Mascot';
 
@@ -26,7 +26,7 @@ export const needsInstall = () => isIos() && !isInstalled();
 
 function InstallSteps({ onSkip }: { onSkip: () => void }) {
   return (
-    <main className="screen items-center justify-center text-center">
+    <main className="screen items-center justify-center-safe overflow-y-auto text-center">
       <Mascot />
       <h1 className="text-3xl font-extrabold">Grown-ups: install first</h1>
       <p className="max-w-sm text-lg">
@@ -51,16 +51,21 @@ function InstallSteps({ onSkip }: { onSkip: () => void }) {
 /** Done by a grown-up, once, so plain text and the keyboard are fine here. */
 export function Setup({
   onDone,
+  restore,
 }: {
   onDone: (name: string, avatar: string, dailyGoal: DailyGoal) => void;
+  /** Loaded only if asked for, since most setups have nothing to bring. */
+  restore: ReactNode;
 }) {
   const [skipped, setSkipped] = useState(false);
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(AVATARS[0] as string);
   const [goal, setGoal] = useState<DailyGoal>('quest');
+  const [restoring, setRestoring] = useState(false);
   if (needsInstall() && !skipped) return <InstallSteps onSkip={() => setSkipped(true)} />;
+  if (restoring) return restore;
   return (
-    <main className="screen items-center justify-center text-center select-text">
+    <main className="screen items-center justify-center-safe overflow-y-auto text-center select-text">
       <h1 className="text-4xl font-extrabold">{APP_NAME}</h1>
       <label className="flex w-full max-w-sm flex-col gap-1 text-lg font-bold">
         Child's name
@@ -106,6 +111,9 @@ export function Setup({
         className="tap tap-primary min-h-20 w-full max-w-sm text-4xl font-extrabold"
       >
         ✓
+      </button>
+      <button type="button" className="p-link" onClick={() => setRestoring(true)}>
+        Moving from another device? Restore a backup
       </button>
     </main>
   );

@@ -88,6 +88,7 @@ export function Quest() {
 
   return (
     <main className="screen" data-section={run.section} data-item={run.item} data-stage={run.stage}>
+      <h1 className="sr-only">Daily quest</h1>
       <header className="flex items-center gap-2">
         <BigButton label="home" tone="quiet" className="!px-3" onClick={actions.goHome}>
           🏠
