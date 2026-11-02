@@ -50,12 +50,19 @@ export function isAutomatic(card: FactCard, fastMs = FLUENCY_MS): boolean {
   return quick / card.history.length >= FLUENCY_RATE;
 }
 
-export type FluencyStatus = 'fast' | 'slow' | 'unknown';
+/**
+ * For the parent's heat map. `automatic` is the brief's bar, which takes 10 attempts on one
+ * card, so a child needs months to reach it across 242 cards. `quick` shows the climb.
+ */
+export type FactHeat = 'automatic' | 'quick' | 'working' | 'unseen';
 
-/** For the parent's heat map. */
-export function fluencyStatus(card: FactCard | undefined): FluencyStatus {
-  if (!card || card.history.length === 0) return 'unknown';
-  return isAutomatic(card) ? 'fast' : 'slow';
+export function factHeat(card: FactCard | undefined): FactHeat {
+  if (!card || card.history.length === 0) return 'unseen';
+  if (isAutomatic(card)) return 'automatic';
+  const lastTwo = card.history.slice(-2);
+  const quick =
+    lastTwo.length === 2 && lastTwo.every((h) => h.correct && h.responseMs <= FLUENCY_MS);
+  return quick ? 'quick' : 'working';
 }
 
 /** At most this many never-seen cards a day, so a child isn't flooded. */

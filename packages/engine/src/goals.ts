@@ -1,4 +1,4 @@
-import type { Goal, LocalDate } from './state';
+import type { DailyGoal, Goal, LocalDate } from './state';
 
 export const isReached = (goal: Goal): boolean => goal.progress >= goal.target;
 
@@ -27,3 +27,35 @@ export const markDelivered = (goal: Goal, at: number): Goal => ({
   delivered: true,
   updatedAt: at,
 });
+
+/** A window that closed short of the target. The child just stops seeing it. */
+export const goalEnded = (goal: Goal, today: LocalDate): boolean =>
+  !isReached(goal) && goal.endDate !== undefined && today > goal.endDate;
+
+/** Applies an event to every goal, keeping the same array when nothing moved. */
+export function advanceGoals(
+  goals: Goal[],
+  unit: Goal['unit'],
+  amount: number,
+  date: LocalDate,
+  at: number,
+): Goal[] {
+  const next = goals.map((g) => addGoalProgress(g, unit, amount, date, at));
+  return next.some((g, i) => g !== goals[i]) ? next : goals;
+}
+
+/** The one goal on the child's Home: a promise still owed comes first. */
+export function activeGoal(goals: Goal[], today: LocalDate): Goal | undefined {
+  const live = goals.filter((g) => !g.delivered);
+  return live.find(isReached) ?? live.find((g) => inWindow(g, today));
+}
+
+/** Goals that an event at this moment finished. */
+export const justReached = (before: Goal[], after: Goal[]): Goal[] =>
+  after.filter((g, i) => isReached(g) && !(before[i] && isReached(before[i])));
+
+export const dailyGoalMet = (
+  goal: DailyGoal,
+  questDone: boolean,
+  challengeDone: boolean,
+): boolean => questDone && (goal === 'quest' || challengeDone);
