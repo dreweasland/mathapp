@@ -16,3 +16,110 @@ body {
   user-select: none;
   touch-action: manipulation;
 }
+
+@theme {
+  --color-ink: #1d3557;
+  --color-sun: #ffb703;
+  --color-sky: #7fd1e8;
+  --color-leaf: #8fe3a8;
+  --color-mist: #dff3fa;
+  --color-cream: #fff8e7;
+}
+
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+button {
+  cursor: pointer;
+  /* iOS grey flash on tap would blur the app's own feedback. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  gap: 0.75rem;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(0.75rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+}
+
+/* Every child-facing control. Set here so nothing can come in under 64px. */
+.tap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 64px;
+  border: 3px solid var(--color-ink);
+  border-radius: 1.25rem;
+  background: white;
+  color: var(--color-ink);
+  box-shadow: 0 4px 0 var(--color-ink);
+  transition: transform 40ms;
+}
+.tap:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--color-ink);
+}
+.tap:disabled {
+  cursor: default;
+}
+.tap-primary {
+  background: var(--color-sun);
+}
+.tap-primary:disabled {
+  opacity: 0.45;
+}
+.tap-used {
+  background: #eef0f3;
+  box-shadow: none;
+  opacity: 0.55;
+}
+.tap-answer {
+  background: var(--color-leaf);
+}
+
+/* A phone on its side has room for three rows of keys, not four. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .pad-keys {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.bounce {
+  animation: bounce 420ms ease-out;
+}
+.pop {
+  animation: pop 180ms ease-out;
+}
+@keyframes bounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-14px) scale(1.08);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bounce,
+  .pop {
+    animation: none;
+  }
+}
