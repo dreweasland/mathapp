@@ -8,6 +8,7 @@ import { Facts } from './pages/Facts';
 import { Motivate } from './pages/Motivate';
 import { Overview } from './pages/Overview';
 import { Report } from './pages/Report';
+import { Settings } from './pages/Settings';
 import { Skills } from './pages/Skills';
 import type { ParentServices } from './services';
 
@@ -17,6 +18,7 @@ const PAGES = [
   { id: 'motivate', label: 'Goals & cheers', hint: 'Real-world rewards and messages' },
   { id: 'report', label: 'Teacher report', hint: 'One printable page' },
   { id: 'children', label: 'Children', hint: 'Edit, add, or start over' },
+  { id: 'settings', label: 'Settings', hint: 'Voice, hand, motion, colors, math time' },
   { id: 'data', label: 'Backup', hint: 'Save or restore all progress' },
 ] as const;
 
@@ -110,6 +112,7 @@ export function ParentApp({ services, onExit }: { services: ParentServices; onEx
         {page === 'motivate' && <Motivate {...shared} />}
         {page === 'report' && <Report {...shared} />}
         {page === 'children' && <Children {...shared} everyone={children} />}
+        {page === 'settings' && <Settings key={view.child.id} {...shared} />}
         {page === 'data' && <Data {...shared} />}
       </div>
     </main>

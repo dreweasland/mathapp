@@ -46,6 +46,7 @@ function setup(startAt = NOON, database = new AppDb(`store-test-${++dbCount}`)) 
       else done?.();
     },
     stop: () => undefined,
+    setVoice: () => undefined,
   };
   const pending: (() => void)[] = [];
   const clips: CheerAudio[] = [];
@@ -914,5 +915,127 @@ describe('cheers', () => {
     env.game.store.setState({ todayDone: true });
     env.game.actions.startQuest();
     expect(env.state().screen).toBe('home');
+  });
+});
+
+describe('free play', () => {
+  const finishToday = async () => {
+    const env = setup();
+    await placed(env);
+    env.game.actions.startQuest();
+    playThrough(env);
+    env.game.actions.skipChallenge();
+    env.game.actions.goHome();
+    await env.game.actions.flushed();
+    return env;
+  };
+  const snapshot = (env: Env) => {
+    const data = env.state().progress as ChildProgress;
+    return {
+      streak: data.streak,
+      missions: env.state().missions,
+      unopened: data.inventory.unopened.length,
+      quests: env.state().child?.questsCompleted,
+      goals: data.goals,
+    };
+  };
+  const practiceAll = (env: Env) => {
+    for (let guard = 0; guard < 60 && env.state().run; guard++) {
+      if ((env.state().run as QuestRun).stage !== 'answering') break;
+      env.tick(1000);
+      env.game.actions.answer(problemNow(env).answer);
+      env.flushTimers();
+    }
+  };
+
+  it('stays closed until the quest is done', async () => {
+    const env = setup();
+    await placed(env);
+    env.game.actions.startPractice('1.counting');
+    env.game.actions.startBlitz('1.add-within-10');
+    expect(env.state().screen).toBe('home');
+  });
+  it('practice pays coins but touches no streak, chest, mission or quest count', async () => {
+    const env = await finishToday();
+    const before = snapshot(env);
+    const coins = env.state().progress?.wallet.lifetimeCoins as number;
+    env.game.actions.startPractice('1.counting');
+    expect(env.state().run?.quest.free).toBe(true);
+    practiceAll(env);
+    expect(env.state().screen).toBe('free-done');
+    expect(snapshot(env)).toEqual(before);
+    expect(env.state().progress?.wallet.lifetimeCoins).toBeGreaterThan(coins);
+    expect(env.state().freeResult?.coins).toBeGreaterThan(0);
+  });
+  it('practice still teaches: it updates mastery', async () => {
+    const env = await finishToday();
+    const attempts = env.state().progress?.states['1.counting']?.attempts ?? 0;
+    env.game.actions.startPractice('1.counting');
+    practiceAll(env);
+    expect(env.state().progress?.states['1.counting']?.attempts).toBeGreaterThan(attempts);
+  });
+  it('leaving practice early keeps what was earned and does not come back as a quest', async () => {
+    const env = await finishToday();
+    env.game.actions.startPractice('1.counting');
+    env.tick(1000);
+    env.game.actions.answer(problemNow(env).answer);
+    env.game.actions.goHome();
+    expect(env.state().run).toBeUndefined();
+    expect(env.state().todayDone).toBe(true);
+    await env.game.actions.flushed();
+    const rows = await env.database.sessions.toArray();
+    expect(rows.find((s) => s.type === 'free')?.run).toBeUndefined();
+  });
+  it('blitz scores right answers, and a miss just moves on', async () => {
+    const env = await finishToday();
+    env.game.actions.startBlitz('1.add-within-10');
+    const first = env.state().blitz?.problem as Problem;
+    env.game.actions.answerBlitz(first.answer);
+    expect(env.state().blitz?.score).toBe(1);
+    const second = env.state().blitz?.problem as Problem;
+    expect(second.factId).not.toBe(first.factId);
+    env.sounds.length = 0;
+    env.game.actions.answerBlitz('999');
+    expect(env.state().blitz?.score).toBe(1);
+    expect(env.sounds).not.toContain('not-yet');
+  });
+  it('ends itself after a minute and keeps the best, without moving the streak', async () => {
+    const env = await finishToday();
+    const before = snapshot(env);
+    env.game.actions.startBlitz('1.add-within-10');
+    env.game.actions.answerBlitz((env.state().blitz?.problem as Problem).answer);
+    env.flushTimers();
+    expect(env.state().screen).toBe('free-done');
+    expect(env.state().freeResult).toMatchObject({ score: 1, best: 1, isBest: true });
+    expect(env.state().progress?.states['1.add-within-10']?.blitzBest).toBe(1);
+    expect(snapshot(env).streak).toEqual(before.streak);
+    await env.game.actions.flushed();
+    const saved = await env.database.skillStates
+      .where({ childId: env.state().child?.id as string, skillId: '1.add-within-10' })
+      .first();
+    expect(saved?.blitzBest).toBe(1);
+  });
+  it('a blitz left early does not finish later behind the child', async () => {
+    const env = await finishToday();
+    env.game.actions.startBlitz('1.add-within-10');
+    env.game.actions.goHome();
+    env.flushTimers();
+    expect(env.state().screen).toBe('home');
+  });
+  it('blitz answers feed the same fact cards the grown-up sees', async () => {
+    const env = await finishToday();
+    env.game.actions.startBlitz('1.add-within-10');
+    const problem = env.state().blitz?.problem as Problem;
+    env.game.actions.answerBlitz(problem.answer);
+    expect(env.state().progress?.cards.get(problem.factId as string)?.history).toHaveLength(1);
+  });
+  it('free play shows up in the grown-up totals but never as a quest', async () => {
+    const env = await finishToday();
+    env.game.actions.startPractice('1.counting');
+    practiceAll(env);
+    await env.game.actions.flushed();
+    const sessions = await env.database.sessions.toArray();
+    expect(sessions.filter((s) => s.completedQuest)).toHaveLength(1);
+    expect(sessions.some((s) => s.type === 'free')).toBe(true);
   });
 });

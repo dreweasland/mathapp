@@ -1,9 +1,12 @@
+import type { ChildSettings } from '@mathapp/engine';
 import { MotionConfig } from 'framer-motion';
 import { lazy, Suspense, useEffect } from 'react';
 import { useGame } from './game/GameProvider';
 import { Celebrate } from './screens/Celebrate';
+import { Blitz } from './screens/Blitz';
 import { Cheer } from './screens/Cheer';
 import { ChestReveal } from './screens/ChestReveal';
+import { Free, FreeDone } from './screens/Free';
 import { Home } from './screens/Home';
 import { SkillMap } from './screens/Map';
 import { Placement } from './screens/Placement';
@@ -51,6 +54,12 @@ function Screen() {
       return <Home />;
     case 'cheer':
       return <Cheer />;
+    case 'blitz':
+      return <Blitz />;
+    case 'free':
+      return <Free />;
+    case 'free-done':
+      return <FreeDone />;
     case 'quest':
       return <Quest />;
     case 'celebrate':
@@ -66,8 +75,18 @@ function Screen() {
   }
 }
 
+/** On the root element, so plain CSS can reach everything, including print. */
+function applySettings(settings: ChildSettings | undefined) {
+  const { dataset } = document.documentElement;
+  dataset['motion'] = settings?.reduceMotion ? 'reduced' : 'full';
+  dataset['palette'] = settings?.colorBlindSafe ? 'safe' : 'standard';
+  dataset['hand'] = settings?.handedness ?? 'right';
+}
+
 export function App() {
-  const { actions } = useGame();
+  const { actions, use } = useGame();
+  const settings = use((s) => s.child?.settings);
+  useEffect(() => applySettings(settings), [settings]);
   useEffect(() => {
     void actions.open();
     const onVisible = () => {
@@ -77,7 +96,7 @@ export function App() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [actions]);
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={settings?.reduceMotion ? 'always' : 'user'}>
       <Screen />
       <ChestReveal />
     </MotionConfig>

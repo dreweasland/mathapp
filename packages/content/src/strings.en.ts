@@ -260,6 +260,14 @@ export const STRINGS: Record<string, string> = {
   'goal.reached': 'You reached your goal! Time for {reward}! Go tell your grown-up.',
   'cheer.from': 'A cheer from your grown-up!',
 
+  // Free play
+  'nav.free': 'Free play! The lightning is a fast game. The rest is practice.',
+  'free.done': 'Nice practice! You earned {coins} coins.',
+  'blitz.go': 'Go! Get as many as you can.',
+  'blitz.done': 'You got {score}. Your best is {best}.',
+  'blitz.best': 'That is your new best! {score}!',
+  'free.empty': 'Finish a quest to open this up.',
+
   // Missions
   'mission.in-a-row': 'Get {target} in a row.',
   'mission.finish-quest': "Finish today's quest.",

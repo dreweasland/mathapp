@@ -163,19 +163,24 @@ export function NumberPad({
         <button
           type="button"
           aria-label="erase"
-          className={key}
+          className={`pad-erase ${key}`}
           disabled={locked || entry === ''}
           onClick={() => setEntry((e) => e.slice(0, -1))}
         >
           ⌫
         </button>
-        <button type="button" className={key} disabled={locked} onClick={() => press('0')}>
+        <button
+          type="button"
+          className={`pad-zero ${key}`}
+          disabled={locked}
+          onClick={() => press('0')}
+        >
           0
         </button>
         <button
           type="button"
           aria-label="check"
-          className={`${key} tap-primary`}
+          className={`pad-check ${key} tap-primary`}
           disabled={locked || entry === ''}
           onClick={check}
         >

@@ -255,6 +255,14 @@ export function Home() {
               className="flex min-h-24 items-center gap-3 text-3xl font-extrabold"
             >
               🌙 <Chest tier={tomorrow} size={64} />
+              <button
+                type="button"
+                aria-label="free play"
+                className="tap ml-2 text-3xl"
+                onClick={() => actions.go('free')}
+              >
+                🎈
+              </button>
             </div>
           ) : (
             <BigButton

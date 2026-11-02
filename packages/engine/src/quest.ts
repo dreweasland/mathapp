@@ -44,6 +44,8 @@ export interface DailyQuest {
   problemCount: number;
   /** A rough planning figure, not a measurement; check it against real sessions. */
   estimatedMinutes: number;
+  /** Free-play practice: same tries and hints, half the coins, and it counts for nothing else. */
+  free?: true;
 }
 
 export interface QuestInput {
@@ -113,7 +115,7 @@ export function factProblem(factId: string, rng: Rng): Problem {
 }
 
 /** Taught already. A skill that's merely open hasn't been shown to the child yet. */
-const hasStarted = (states: SkillStates, skill: SkillDef): boolean => {
+export const hasStarted = (states: SkillStates, skill: SkillDef): boolean => {
   const state = states[skill.id];
   return (state?.attempts ?? 0) > 0 || state?.placedOut === true || state?.masteredAt !== undefined;
 };

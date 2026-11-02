@@ -20,6 +20,8 @@ export interface ChildSettings {
   handedness: 'left' | 'right';
   reduceMotion: boolean;
   colorBlindSafe: boolean;
+  /** "HH:MM", for the calendar reminder. */
+  mathTime?: string;
 }
 
 export interface ChildProfile {
@@ -57,6 +59,8 @@ export interface SkillState {
   wrongStreak: number;
   /** Quests that featured this skill since it was last mastered; used to rotate off a stuck skill. */
   questsOnSkill: number;
+  /** Most right in one Fact Blitz. Only ever rises, and only against the child's own score. */
+  blitzBest?: number;
   /** Problems missed twice, due back in the next quest. Non-fact only: fact cards do this. */
   retakes?: Problem[];
   updatedAt: number;

@@ -104,6 +104,7 @@ function finishSection(run: QuestRun): QuestRun {
     stage: 'section-intro',
   });
   if (kind === 'warmup') return toSection(nextSection);
+  if (run.quest.free) return { ...fresh(run), stage: 'finished' };
   if (kind === 'skill') {
     const challenge = run.quest.sections[nextSection];
     return {
@@ -171,7 +172,7 @@ export function submitAnswer(
     correct,
     fast: outcome === 'fast',
     recovered: tryNumber === 2,
-    mode: 'quest',
+    mode: run.quest.free ? 'free' : 'quest',
   });
   const inARow = tryNumber === 1 ? run.inARow + 1 : 0;
   return {
