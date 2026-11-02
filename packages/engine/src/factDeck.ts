@@ -1,5 +1,5 @@
 import { addDays } from './dates';
-import { allFacts, factSkill, type Fact } from './facts';
+import { FACTOR_ORDER, allFacts, factSkill, type Fact } from './facts';
 import type { Rng } from './rng';
 import type { FactCard, LocalDate } from './state';
 
@@ -69,6 +69,12 @@ export function factHeat(card: FactCard | undefined): FactHeat {
 export const NEW_CARDS_PER_DAY = 3;
 
 const easeTier = (fact: Fact): number => {
+  if (fact.op === 'mul' || fact.op === 'div') {
+    // The brief's teaching order: the easier factor in a pair decides when a card appears.
+    const factors = fact.op === 'mul' ? [fact.a, fact.b] : [fact.b, fact.a / fact.b];
+    const place = (n: number) => (n === 1 ? -1 : (FACTOR_ORDER as readonly number[]).indexOf(n));
+    return Math.min(...factors.map(place));
+  }
   const total = fact.op === 'add' ? fact.a + fact.b : fact.a;
   return total <= 5 ? 0 : total <= 10 ? 1 : 2;
 };

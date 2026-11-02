@@ -1,11 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { addFactId, allFacts, factSkill, isSubFact, parseFactId, subFactId } from './facts';
+import {
+  addFactId,
+  allFacts,
+  divFactId,
+  factSkill,
+  isSubFact,
+  mulFactId,
+  parseFactId,
+  subFactId,
+} from './facts';
 
 describe('facts', () => {
   it('has 121 addition and 121 subtraction cards', () => {
     const facts = allFacts();
     expect(facts.filter((f) => f.op === 'add')).toHaveLength(121);
     expect(facts.filter((f) => f.op === 'sub')).toHaveLength(121);
+  });
+  it('has 100 multiplication and 100 division cards', () => {
+    const facts = allFacts();
+    expect(facts.filter((f) => f.op === 'mul')).toHaveLength(100);
+    expect(facts.filter((f) => f.op === 'div')).toHaveLength(100);
+  });
+  it('each division fact is the inverse of a multiplication fact', () => {
+    for (const f of allFacts().filter((x) => x.op === 'div')) {
+      expect(f.a % f.b).toBe(0);
+      expect(mulFactId(f.b, f.a / f.b)).toBeDefined();
+    }
+  });
+  it('round-trips every id', () => {
+    for (const f of allFacts()) expect(parseFactId(f.id)).toEqual(f);
+  });
+  it('puts products and quotients in Grade 3', () => {
+    expect(factSkill(parseFactId('mul:3x4'))).toBe('3.mult-facts');
+    expect(factSkill(parseFactId('div:12/3'))).toBe('3.div-facts');
+  });
+  it('rejects division that does not come out even, and factors past 10', () => {
+    expect(divFactId(13, 4)).toBeUndefined();
+    expect(mulFactId(11, 2)).toBeUndefined();
+    expect(divFactId(121, 11)).toBeUndefined();
   });
   it('ids are unique', () => {
     const ids = allFacts().map((f) => f.id);

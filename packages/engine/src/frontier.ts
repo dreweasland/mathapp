@@ -92,6 +92,12 @@ export function selectReview(skills: SkillDef[], states: SkillStates, limit: num
 
 export type MapStatus = 'mastered' | 'passed' | 'current' | 'open' | 'locked';
 
+/** The grade the child is working in now, which sets the map and the teacher report. */
+export function activeGrade(skills: SkillDef[], states: SkillStates): SkillDef['grade'] {
+  const next = selectFrontier(skills, states);
+  return next?.grade ?? (Math.max(...skills.map((s) => s.grade)) as SkillDef['grade']);
+}
+
 /** Each skill's place on the child's map. A dip in mastery never moves one backward. */
 export function mapStatus(skill: SkillDef, skills: SkillDef[], states: SkillStates): MapStatus {
   const state = states[skill.id];

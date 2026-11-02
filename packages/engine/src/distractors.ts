@@ -16,13 +16,14 @@ function regroupSlip(op: 'add' | 'sub', a: number, b: number): number | undefine
 /** Wrong answers a child is likely to give for a ± b, each tagged with its cause. */
 export function arithCandidates(op: 'add' | 'sub', a: number, b: number): Candidate[] {
   const answer = op === 'add' ? a + b : a - b;
+  // A forgotten regroup comes first: only three wrong choices fit, and it's the one to catch.
+  const slip = regroupSlip(op, a, b);
   const found: Candidate[] = [
+    ...(slip !== undefined ? [{ value: slip, errorType: 'didnt-regroup' as const }] : []),
     { value: op === 'add' ? Math.abs(a - b) : a + b, errorType: 'reversed-operation' },
     { value: answer + 1, errorType: 'off-by-one' },
     { value: answer - 1, errorType: 'off-by-one' },
   ];
-  const slip = regroupSlip(op, a, b);
-  if (slip !== undefined) found.push({ value: slip, errorType: 'didnt-regroup' });
   if (answer >= 10 && answer < 100 && answer % 10 !== 0) {
     const swapped = (answer % 10) * 10 + Math.floor(answer / 10);
     if (swapped !== answer) found.push({ value: swapped, errorType: 'digit-swap' });

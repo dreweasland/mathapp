@@ -31,7 +31,51 @@ export type Operands =
   | { kind: 'shape-name'; shape: ShapeName }
   | { kind: 'shape-sides'; shape: ShapeName }
   | { kind: 'shares'; shape: 'circle' | 'square' | 'rectangle'; parts: 2 | 4 }
-  | { kind: 'lengths'; lengths: number[]; ask: 'longest' | 'shortest' | 'middle' };
+  | { kind: 'lengths'; lengths: number[]; ask: 'longest' | 'shortest' | 'middle' }
+  // Grade 2
+  | {
+      kind: 'place-value-3';
+      hundreds: number;
+      tens: number;
+      ones: number;
+      ask: 'value' | 'hundreds' | 'tens' | 'ones';
+    }
+  /** Skip counting. `step` is negative when counting back. */
+  | { kind: 'skip'; from: number; step: number }
+  | { kind: 'even-odd'; n: number }
+  | { kind: 'array'; rows: number; cols: number; form: 'array' | 'groups' | 'area' }
+  /** `items` are in cents, so a dollar bill is 100. */
+  | { kind: 'money'; items: number[]; unit: 'cents' | 'dollars' }
+  /** Choices are coin lists like "25+10". */
+  | { kind: 'make-amount'; target: number }
+  | { kind: 'change'; paid: number; cost: number }
+  | { kind: 'am-pm'; scene: string; part: 'a.m.' | 'p.m.' }
+  /** Worked left to right: (a first b) second c. */
+  | { kind: 'two-step'; a: number; b: number; c: number; first: StepOp; second: StepOp }
+  | { kind: 'ruler'; length: number; unit: 'in' | 'cm' }
+  | { kind: 'estimate'; object: string; unit: 'in' | 'cm'; actual: number }
+  // Grade 3
+  | { kind: 'mult'; a: number; b: number }
+  | { kind: 'div'; a: number; b: number }
+  | { kind: 'share'; total: number; parts: number; ask: 'each' | 'groups' }
+  | { kind: 'unknown-factor'; known: number; product: number }
+  | { kind: 'family-md'; a: number; b: number; ask: 'flip' | 'div-a' | 'div-b' }
+  | { kind: 'round'; n: number; to: 10 | 100 }
+  | { kind: 'fraction'; n: number; d: number; form: 'shape' | 'line'; ask: 'name' | 'parts' }
+  | {
+      kind: 'fraction-compare';
+      an: number;
+      ad: number;
+      bn: number;
+      bd: number;
+      form: 'tap' | 'symbol';
+    }
+  /** n/d = ?/(d × scale) */
+  | { kind: 'fraction-equal'; n: number; d: number; scale: number }
+  | { kind: 'elapsed'; hour: number; minute: number; passed: number; ask: 'end' | 'minutes' }
+  | { kind: 'area'; w: number; h: number; ask: 'area' | 'perimeter' };
+
+export type StepOp = 'add' | 'sub' | 'mul' | 'div';
 
 export interface Choice {
   value: string;
@@ -53,7 +97,16 @@ export type HintVisual =
   | 'alligator'
   | 'clock'
   | 'shape'
-  | 'bars';
+  | 'bars'
+  | 'place-chart'
+  | 'pairs'
+  | 'groups'
+  | 'coins'
+  | 'ruler'
+  | 'fraction-bars'
+  | 'round-line'
+  | 'area-grid'
+  | 'steps';
 
 export interface Hint {
   visual: HintVisual;

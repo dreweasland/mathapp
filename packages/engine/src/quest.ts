@@ -3,6 +3,8 @@ import { factSkill, parseFactId } from './facts';
 import { isUnlocked, selectReview, selectToday, type TodayMode } from './frontier';
 import { generatorFor } from './generators';
 import { arithProblem } from './generators/arith';
+import { divFactProblem } from './generators/divFacts';
+import { multFactProblem } from './generators/multFacts';
 import { clampDifficulty } from './problem';
 import { hashSeed, mulberry32, type Rng } from './rng';
 import type { FactCard, LocalDate, SkillState } from './state';
@@ -92,6 +94,8 @@ function drawUnique(make: () => Problem, seen: Set<string>): Problem {
 /** A fact card as a problem. Warm-up is fast, so it's a tap or a number pad. */
 export function factProblem(factId: string, rng: Rng): Problem {
   const { op, a, b } = parseFactId(factId);
+  if (op === 'mul') return multFactProblem(rng, 1, a, b);
+  if (op === 'div') return divFactProblem(rng, 1, a, b);
   return arithProblem(rng, {
     skillId: factSkill({ id: factId, op, a, b }),
     difficulty: 1,

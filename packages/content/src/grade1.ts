@@ -3,7 +3,9 @@ import type { QuestionType, SkillDef } from '@mathapp/engine';
 const MASTERY = { threshold: 80, minAttempts: 15 };
 const FACT_MS = 3000;
 
-function skill(
+/** Shared by every grade. Prerequisites are full ids, so a skill can reach across grades. */
+export function defineSkill(
+  grade: SkillDef['grade'],
   order: number,
   slug: string,
   standard: string,
@@ -15,16 +17,16 @@ function skill(
   fastMs: number,
   factBased = false,
 ): SkillDef {
-  const id = `1.${slug}`;
+  const id = `${grade}.${slug}`;
   return {
     id,
-    grade: 1,
+    grade,
     standard,
     name,
     kidName,
     speechKey: `skill.${id}`,
     badgeName,
-    prerequisites: prerequisites.map((p) => `1.${p}`),
+    prerequisites,
     questionTypes,
     fastMs,
     factBased,
@@ -32,6 +34,32 @@ function skill(
     order,
   };
 }
+
+const skill = (
+  order: number,
+  slug: string,
+  standard: string,
+  name: string,
+  kidName: string,
+  badgeName: string,
+  prerequisites: string[],
+  questionTypes: QuestionType[],
+  fastMs: number,
+  factBased = false,
+): SkillDef =>
+  defineSkill(
+    1,
+    order,
+    slug,
+    standard,
+    name,
+    kidName,
+    badgeName,
+    prerequisites.map((p) => `1.${p}`),
+    questionTypes,
+    fastMs,
+    factBased,
+  );
 
 /** Listed in teaching order, which is also the frontier tie-break. */
 export const GRADE_1_SKILLS: SkillDef[] = [
