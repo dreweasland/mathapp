@@ -665,7 +665,7 @@ describe('more than one child', () => {
     const env = setup();
     await placed(env);
     const first = env.state().child?.id;
-    const repo = childrenRepository(env.database, () => NOON);
+    const repo = childrenRepository(env.database, () => NOON + 1000);
     await repo.create({ name: 'Kim', avatar: '🐼' });
 
     const again = setup(NOON, env.database);

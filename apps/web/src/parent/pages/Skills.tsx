@@ -1,6 +1,6 @@
 import { GRADE_1_SKILLS } from '@mathapp/content';
 import { skillRows, skillSummary } from '@mathapp/engine';
-import { ERROR_LABEL, STATUS_LABEL, TREND_LABEL, shortDate } from '../labels';
+import { ERROR_LABEL, TREND_LABEL, shortDate, statusLabel } from '../labels';
 import type { PageProps } from '../ParentApp';
 
 export function Skills({ view }: PageProps) {
@@ -46,7 +46,7 @@ export function Skills({ view }: PageProps) {
               </span>
             </div>
             <p className="text-sm">
-              {STATUS_LABEL[row.status]}
+              {statusLabel(row.status, row.attempts)}
               {row.lastPracticedAt !== undefined && ` · last ${shortDate(row.lastPracticedAt)}`}
               {row.topError && ` · usual mistake: ${ERROR_LABEL[row.topError].toLowerCase()}`}
             </p>

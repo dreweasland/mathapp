@@ -33,13 +33,13 @@ export function Who() {
         </BigButton>
       </header>
       <Mascot size={110} />
-      <div className="grid w-full max-w-md grid-cols-2 gap-3" data-testid="who">
+      <div className="flex w-full max-w-md flex-wrap justify-center gap-3" data-testid="who">
         {everyone.map((child) => (
           <button
             key={child.id}
             type="button"
             aria-label={child.name}
-            className="tap min-h-28 flex-col gap-1 text-6xl"
+            className="tap min-h-28 w-40 flex-col gap-1 text-6xl"
             onClick={() => void actions.pick(child)}
           >
             <span aria-hidden="true">{child.avatar}</span>

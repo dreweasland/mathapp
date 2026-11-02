@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { Dashboard } from '../db/repositories/parent';
 import { APP_NAME } from '../config';
 import { FactTable, HeatLegend } from './FactTable';
-import { ERROR_LABEL, STATUS_LABEL, TREND_LABEL, percent, shortDate } from './labels';
+import { ERROR_LABEL, TREND_LABEL, percent, shortDate, statusLabel } from './labels';
 
 export const REPORT_DAYS = 30;
 
@@ -82,7 +82,7 @@ function SkillTable({ rows }: { rows: SkillRow[] }) {
                 '—'
               )}
             </td>
-            <td>{STATUS_LABEL[row.status]}</td>
+            <td>{statusLabel(row.status, row.attempts)}</td>
             <td>
               {row.trend ? `${TREND_LABEL[row.trend].arrow} ${TREND_LABEL[row.trend].text}` : '—'}
             </td>
@@ -158,10 +158,7 @@ function Report({ view, today }: { view: Dashboard; today: string }) {
           Skills mastered
         </div>
         <div className="stat">
-          <b>
-            {progress.streak.current}/{progress.streak.best}
-          </b>
-          Streak now/best
+          <b>{progress.streak.current}</b>Day streak (best {progress.streak.best})
         </div>
       </div>
       <ul className="notes">
@@ -206,11 +203,11 @@ function Report({ view, today }: { view: Dashboard; today: string }) {
         <div className="facts">
           <div>
             <p>Row + column</p>
-            <FactTable grid={add} cell={13} />
+            <FactTable grid={add} cell={15} />
           </div>
           <div>
             <p>(Row + column) − row</p>
-            <FactTable grid={sub} cell={13} />
+            <FactTable grid={sub} cell={15} />
           </div>
           <div className="legend">
             <HeatLegend grids={[add, sub]} />

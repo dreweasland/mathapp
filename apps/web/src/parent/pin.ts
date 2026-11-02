@@ -1,9 +1,7 @@
 export const PIN_LENGTH = 4;
 
 const hex = (bytes: ArrayBuffer | Uint8Array) =>
-  [...new Uint8Array(bytes instanceof ArrayBuffer ? bytes : bytes.buffer)]
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, '0')).join('');
 
 export const newSalt = (): string => hex(crypto.getRandomValues(new Uint8Array(16)));
 

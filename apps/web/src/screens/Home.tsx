@@ -131,6 +131,33 @@ function GoalBar() {
   );
 }
 
+/**
+ * One note, most urgent first, in the header's spare room: anywhere else, small phones push
+ * it off the bottom of the screen, and these protect the child's progress.
+ */
+function GrownUpNote() {
+  const { use } = useGame();
+  const saveFailed = use((s) => s.saveFailed);
+  const backup = use((s) => s.backupDue);
+  const text = saveFailed
+    ? "Grown-ups: this device couldn't save. Is storage full?"
+    : needsInstall()
+      ? 'Grown-ups: add to Home Screen to keep progress safe.'
+      : backup
+        ? 'Grown-ups: time to save a backup.'
+        : undefined;
+  if (!text) return null;
+  return (
+    <p
+      data-testid="grown-up-note"
+      role={saveFailed ? 'alert' : undefined}
+      className="min-w-0 flex-1 px-1 text-[11px] leading-tight font-bold"
+    >
+      {text}
+    </p>
+  );
+}
+
 export function Home() {
   const { actions, use } = useGame();
   const child = use((s) => s.child);
@@ -140,8 +167,6 @@ export function Home() {
   const nextChest = use((s) => s.progress?.inventory.unopened[0]);
   const todayDone = use((s) => s.todayDone);
   const resuming = use((s) => s.run !== undefined);
-  const saveFailed = use((s) => s.saveFailed);
-  const backup = use((s) => s.backupDue);
   const current = streak?.current ?? 0;
   const best = streak?.best ?? 0;
   const shields = streak?.shields ?? 0;
@@ -162,6 +187,7 @@ export function Home() {
         >
           {child?.avatar}
         </button>
+        <GrownUpNote />
         <span className="flex items-center gap-3">
           <button
             type="button"
@@ -255,18 +281,6 @@ export function Home() {
           </nav>
         </div>
       </div>
-
-      {saveFailed && (
-        <p role="alert" className="text-sm font-bold">
-          Grown-ups: this device couldn't save progress. Check that storage isn't full.
-        </p>
-      )}
-      {backup && <p className="text-sm">Grown-ups: it's time to save a backup.</p>}
-      {needsInstall() && (
-        <p className="text-sm">
-          Grown-ups: add this app to the Home Screen so progress stays safe.
-        </p>
-      )}
     </main>
   );
 }

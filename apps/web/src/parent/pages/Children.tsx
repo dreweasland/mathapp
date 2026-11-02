@@ -191,10 +191,12 @@ function AddChild({ services, reload, taken }: PageProps & { taken: string[] }) 
 function StartOver({ view, services, reload, single }: PageProps & { single: boolean }) {
   const { child } = view;
   const [typed, setTyped] = useState('');
+  const [done, setDone] = useState(false);
   const match = typed.trim().toLowerCase() === child.name.toLowerCase();
   const act = (work: Promise<void>) =>
     void work.then(() => {
       setTyped('');
+      setDone(true);
       return reload();
     });
   return (
@@ -231,6 +233,11 @@ function StartOver({ view, services, reload, single }: PageProps & { single: boo
           </button>
         )}
       </div>
+      {done && (
+        <p role="status" className="text-sm font-bold">
+          Done.
+        </p>
+      )}
     </section>
   );
 }

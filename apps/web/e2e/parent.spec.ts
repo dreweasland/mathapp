@@ -359,6 +359,62 @@ test('the dashboard opens offline, including on the first visit to it', async ({
   await expect(page.getByTestId('report-frame')).toBeVisible();
 });
 
+const HOME_VIEWS = [
+  { width: 393, height: 660 },
+  { width: 375, height: 553 },
+  { width: 320, height: 568 },
+  { width: 667, height: 375 },
+  { width: 768, height: 1024 },
+];
+
+for (const viewport of HOME_VIEWS) {
+  test.describe(`Home at ${viewport.width}x${viewport.height}`, () => {
+    test.use({ viewport });
+    test('fits with a goal, and the note a grown-up needs stays on screen', async ({ page }) => {
+      await setUpChild(page);
+      await openDashboard(page);
+      await page.getByRole('button', { name: /^Goals & cheers/ }).click();
+      await page.getByLabel('Reward').fill('movie night');
+      await page.getByLabel('Finish').fill('1');
+      await page.getByRole('button', { name: 'Set goal' }).click();
+      await expect(page.getByTestId('current-goal')).toBeVisible();
+      await page.getByRole('button', { name: '‹ Back' }).click();
+      await leave(page);
+      await patchRow(page, 'children', { questsCompleted: 7 });
+      const offScreen = () =>
+        page.evaluate(() =>
+          [...document.querySelectorAll('main button, main p')]
+            .filter((el) => {
+              const box = el.getBoundingClientRect();
+              return (
+                box.bottom > innerHeight + 0.5 ||
+                box.top < -0.5 ||
+                box.right > innerWidth + 0.5 ||
+                box.height === 0
+              );
+            })
+            .map((el) => el.getAttribute('aria-label') ?? el.textContent),
+        );
+
+      // In a Safari tab the install warning wins.
+      await page.reload();
+      await expect(page.getByTestId('goal')).toBeVisible();
+      await expect(page.getByTestId('grown-up-note')).toContainText('Home Screen');
+      await expect(page.getByTestId('grown-up-note')).toBeInViewport({ ratio: 1 });
+      expect(await offScreen()).toEqual([]);
+
+      // Installed, the backup reminder takes its place.
+      await page.addInitScript(() =>
+        Object.defineProperty(navigator, 'standalone', { value: true }),
+      );
+      await page.reload();
+      await expect(page.getByTestId('grown-up-note')).toContainText('save a backup');
+      await expect(page.getByTestId('grown-up-note')).toBeInViewport({ ratio: 1 });
+      expect(await offScreen()).toEqual([]);
+    });
+  });
+}
+
 test.describe('every parent page fits a small phone', () => {
   test.use({ viewport: { width: 320, height: 568 } });
   test('without sideways scrolling', async ({ page }) => {

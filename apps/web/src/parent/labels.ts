@@ -17,6 +17,10 @@ export const STATUS_LABEL: Record<MapStatus, string> = {
   locked: 'Not yet',
 };
 
+/** The map's status says where a skill sits. A grown-up also needs to know it's been practiced. */
+export const statusLabel = (status: MapStatus, attempts: number): string =>
+  (status === 'open' || status === 'locked') && attempts > 0 ? 'Practicing' : STATUS_LABEL[status];
+
 export const TREND_LABEL: Record<Trend, { arrow: string; text: string }> = {
   up: { arrow: '↑', text: 'improving' },
   steady: { arrow: '→', text: 'steady' },
