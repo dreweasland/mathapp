@@ -29,7 +29,12 @@ function Gauge({ done, total, icon }: { done: number; total: number; icon: strin
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
-  return <main className="screen items-center justify-center gap-8 text-center">{children}</main>;
+  return (
+    <main className="screen items-center justify-center gap-8 text-center">
+      <h1 className="sr-only">Daily quest</h1>
+      {children}
+    </main>
+  );
 }
 
 export function Quest() {
