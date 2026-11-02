@@ -54,6 +54,32 @@ async function grownUps(page: Page) {
   await expect(page.getByTestId('parent')).toBeVisible();
 }
 
+test('no first visit blanks the screen: every place is loaded before it is needed', async ({
+  page,
+}) => {
+  const lazyFiles: string[] = [];
+  page.on('response', (r) => {
+    if (/assets\/(Map|Shop|Stickers|Trophies|Free|Blitz|Celebrate|ChestReveal)-/.test(r.url())) {
+      lazyFiles.push(r.url());
+    }
+  });
+  await setUpChild(page);
+  await expect.poll(() => lazyFiles.length).toBeGreaterThanOrEqual(8);
+  await page.getByRole('button', { name: 'map' }).evaluate((el: HTMLElement) => {
+    const seen = { blank: false };
+    new MutationObserver(() => {
+      if (!document.querySelector('main')) seen.blank = true;
+    }).observe(document.body, { childList: true, subtree: true, attributes: true });
+    Object.assign(window, { __seen: seen });
+    el.click();
+  });
+  await expect(page.getByTestId('map')).toBeVisible();
+  const blank = await page.evaluate(
+    () => (window as unknown as { __seen: { blank: boolean } }).__seen.blank,
+  );
+  expect(blank).toBe(false);
+});
+
 test('free play only appears after the quest', async ({ page }) => {
   await setUpChild(page);
   await expect(page.getByRole('button', { name: 'free play' })).toHaveCount(0);

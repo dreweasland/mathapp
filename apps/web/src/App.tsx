@@ -12,21 +12,39 @@ import { Who } from './screens/Who';
  * Home and the quest load first. Everything else, including the animation library, arrives
  * on first use. The service worker precaches all of it, so offline still works.
  */
-const Parent = lazy(() => import('./parent/entry'));
+const LOADERS = {
+  Celebrate: () => import('./screens/Celebrate'),
+  ChestReveal: () => import('./screens/ChestReveal'),
+  Map: () => import('./screens/Map'),
+  Shop: () => import('./screens/Shop'),
+  Stickers: () => import('./screens/Stickers'),
+  Trophies: () => import('./screens/Trophies'),
+  Free: () => import('./screens/Free'),
+  Blitz: () => import('./screens/Blitz'),
+};
+
 const named = <K extends string>(
   load: () => Promise<Record<K, () => JSX.Element | null>>,
   key: K,
 ) => lazy(() => load().then((m) => ({ default: m[key] })));
-const Celebrate = named(() => import('./screens/Celebrate'), 'Celebrate');
-const ChestReveal = named(() => import('./screens/ChestReveal'), 'ChestReveal');
-const SkillMap = named(() => import('./screens/Map'), 'SkillMap');
-const Shop = named(() => import('./screens/Shop'), 'Shop');
-const Stickers = named(() => import('./screens/Stickers'), 'Stickers');
-const Trophies = named(() => import('./screens/Trophies'), 'Trophies');
-const Blitz = named(() => import('./screens/Blitz'), 'Blitz');
-const Free = named(() => import('./screens/Free'), 'Free');
-const FreeDone = named(() => import('./screens/Free'), 'FreeDone');
+
+const Parent = lazy(() => import('./parent/entry'));
 const SetupRestore = lazy(() => import('./parent/restoreEntry'));
+const Celebrate = named(LOADERS.Celebrate, 'Celebrate');
+const ChestReveal = named(LOADERS.ChestReveal, 'ChestReveal');
+const SkillMap = named(LOADERS.Map, 'SkillMap');
+const Shop = named(LOADERS.Shop, 'Shop');
+const Stickers = named(LOADERS.Stickers, 'Stickers');
+const Trophies = named(LOADERS.Trophies, 'Trophies');
+const Blitz = named(LOADERS.Blitz, 'Blitz');
+const Free = named(LOADERS.Free, 'Free');
+const FreeDone = named(LOADERS.Free, 'FreeDone');
+
+/** After the first paint, so nothing a child opens later has to blank the screen to load. */
+const AFTER_FIRST_PAINT_MS = 500;
+function loadTheRest() {
+  for (const load of Object.values(LOADERS)) void load();
+}
 
 function Screen() {
   const { actions, use } = useGame();
@@ -93,11 +111,15 @@ export function App() {
   useEffect(() => applySettings(settings), [settings]);
   useEffect(() => {
     void actions.open();
+    const preload = setTimeout(loadTheRest, AFTER_FIRST_PAINT_MS);
     const onVisible = () => {
       if (document.visibilityState === 'visible') void actions.checkNewDay();
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      clearTimeout(preload);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [actions]);
   return (
     <>
