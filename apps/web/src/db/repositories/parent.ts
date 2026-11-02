@@ -92,10 +92,11 @@ export function parentRepository(db: AppDb, now: () => number = Date.now) {
 
     /** Keeps the name and picture, and sends the child back through placement. */
     async resetChild(child: ChildProfile) {
-      const { placedAt: _placedAt, ...rest } = child;
+      const fresh = { ...child, questsCompleted: 0, updatedAt: now() };
+      delete fresh.placedAt;
       await db.transaction('rw', [...childTables(db), db.children], async () => {
         await clearProgress(child.id);
-        await db.children.put({ ...rest, questsCompleted: 0, updatedAt: now() });
+        await db.children.put(fresh);
       });
     },
 

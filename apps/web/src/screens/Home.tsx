@@ -5,6 +5,7 @@ import {
   isReached,
   weekStrip,
   type Mission,
+  type Speech,
 } from '@mathapp/engine';
 import { useEffect } from 'react';
 import { APP_NAME } from '../config';
@@ -98,7 +99,7 @@ function GoalBar() {
   const goal = goals && today ? activeGoal(goals, today) : undefined;
   if (!goal) return null;
   const reached = isReached(goal);
-  const line = reached
+  const line: Speech = reached
     ? { key: 'goal.ready', params: { reward: goal.rewardText } }
     : {
         key: `goal.${goal.unit}`,
