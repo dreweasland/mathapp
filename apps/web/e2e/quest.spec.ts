@@ -67,7 +67,15 @@ test('wrong answers get a hint, then the answer, and never a dead end', async ({
   await page.getByRole('button', { name: 'start quest' }).click();
   await page.getByRole('button', { name: 'go', exact: true }).click();
 
-  const problem = await problemOnScreen(page);
+  // A two-choice problem can't be missed twice, so move on to one that can.
+  let problem = await problemOnScreen(page);
+  let item = 0;
+  while (problem.choices?.length === 2) {
+    await answer(page, problem, problem.answer);
+    item += 1;
+    await expect(page.locator(`main[data-item="${item}"]`)).toBeVisible();
+    problem = await problemOnScreen(page);
+  }
   const first = wrongValue(problem);
   await answer(page, problem, first);
   await expect(page.getByTestId('hint')).toBeVisible();
@@ -80,7 +88,7 @@ test('wrong answers get a hint, then the answer, and never a dead end', async ({
   expect((await said(page)).join(' ')).toContain("That one was tricky. Here's how it works.");
 
   await page.getByRole('button', { name: 'next' }).click();
-  await expect(page.locator('main[data-item="1"]')).toBeVisible();
+  await expect(page.locator(`main[data-item="${item + 1}"]`)).toBeVisible();
   await expect(page.getByTestId('hint')).toHaveCount(0);
 });
 

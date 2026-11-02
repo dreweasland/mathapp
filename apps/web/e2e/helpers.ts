@@ -79,6 +79,7 @@ export function wrongValue(problem: Problem, avoid: string[] = []): string {
   if (problem.choices) {
     const other = problem.choices.find((c) => !skip.has(c.value));
     if (other) return other.value;
+    throw new Error('No wrong choice left');
   }
   if (problem.questionType === 'number-line') {
     const { min = 0, max = 10 } = problem.numberLine ?? {};
