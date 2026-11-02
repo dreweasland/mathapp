@@ -67,7 +67,7 @@ export function Quest() {
         <span className="pop text-8xl" aria-hidden="true">
           ⭐
         </span>
-        <Mascot mood="thinking" size={130} />
+        <Mascot mood="happy" size={130} />
         <div className="flex w-full max-w-md gap-4">
           <BigButton label="yes" className="flex-1" onClick={actions.acceptChallenge}>
             ⭐ ✓

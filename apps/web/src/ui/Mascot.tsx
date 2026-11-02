@@ -4,10 +4,12 @@ const MOUTH: Record<Mood, string> = {
   idle: 'M38 62 Q50 70 62 62',
   happy: 'M34 58 Q50 80 66 58 Z',
   cheer: 'M34 58 Q50 80 66 58 Z',
-  thinking: 'M42 66 Q50 62 58 66',
+  thinking: 'M42 63 Q52 70 60 62',
 };
 
 /** One bear everywhere. Thinking is calm and curious, never sad. */
+export const mouthFor = (mood: Mood) => MOUTH[mood];
+
 export function Mascot({ mood = 'idle', size = 96 }: { mood?: Mood; size?: number }) {
   const closedEyes = mood === 'happy' || mood === 'cheer';
   return (
@@ -32,9 +34,10 @@ export function Mascot({ mood = 'idle', size = 96 }: { mood?: Mood; size?: numbe
           <path d="M60 42 Q66 35 72 42" />
         </g>
       ) : (
+        // Thinking looks up and to the side, the way a curious child does.
         <g fill="#1d3557">
-          <circle cx="34" cy="41" r="4.5" />
-          <circle cx={mood === 'thinking' ? 67 : 66} cy="41" r="4.5" />
+          <circle cx={mood === 'thinking' ? 37 : 34} cy={mood === 'thinking' ? 38 : 41} r="4.5" />
+          <circle cx={mood === 'thinking' ? 69 : 66} cy={mood === 'thinking' ? 38 : 41} r="4.5" />
         </g>
       )}
       <path
