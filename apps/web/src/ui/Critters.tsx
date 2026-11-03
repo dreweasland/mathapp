@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { WEAR_ART } from './Wearables';
 
 /**
  * The collectible animals, drawn in the bear's style: navy outline, flat fills, friendly faces.
@@ -607,9 +608,9 @@ const ART: Record<string, ReactNode> = {
 export const hasCritter = (id: string) => id in ART;
 export const CRITTER_IDS = Object.keys(ART);
 
-/** An item's picture: drawn when there is a drawing, otherwise its emoji. */
+/** Any item's picture, animal or something to wear: drawn when there is a drawing, else its emoji. */
 export function ItemArt({ id, emoji, size = 48 }: { id: string; emoji?: string; size?: number }) {
-  const art = ART[id];
+  const art = ART[id] ?? WEAR_ART[id];
   if (!art) {
     return (
       <span aria-hidden="true" style={{ fontSize: size * 0.8, lineHeight: 1 }}>

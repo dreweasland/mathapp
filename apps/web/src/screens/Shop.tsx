@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useGame } from '../game/GameProvider';
 import { BigButton } from '../ui/BigButton';
 import { DressedMascot } from '../ui/MyMascot';
+import { ItemArt } from '../ui/Critters';
 import { Icon } from '../ui/icons';
 import { PlaceFrame } from '../ui/PlaceFrame';
 
@@ -87,7 +88,7 @@ export function Shop() {
                       onClick={() => tap(c)}
                       className={`tap flex-col text-3xl ${worn ? 'tap-answer' : ''}`}
                     >
-                      <span>{artFor(c.id)?.emoji}</span>
+                      <ItemArt id={c.id} emoji={artFor(c.id)?.emoji} size={40} />
                       {!owned(c.id) && (
                         <span className="flex items-center gap-0.5 text-sm leading-none font-extrabold">
                           <Icon name="coin" size={14} />
