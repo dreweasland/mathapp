@@ -146,3 +146,67 @@ test('leaving for home mid-quest costs nothing', async ({ page }) => {
   await page.getByRole('button', { name: 'keep going' }).click();
   await expect(page.locator('main[data-item="0"]')).toBeVisible();
 });
+
+test('a right answer turns green, and a wrong one is marked and explained', async ({ page }) => {
+  await setUpChild(page);
+  await page.getByRole('button', { name: 'start quest' }).click();
+  await page.getByRole('button', { name: "Let's go", exact: true }).click();
+  let problem = await problemOnScreen(page);
+  let item = 0;
+  while (problem.choices?.length === 2) {
+    await answer(page, problem, problem.answer);
+    item += 1;
+    await expect(page.locator(`main[data-item="${item}"]`)).toBeVisible();
+    problem = await problemOnScreen(page);
+  }
+  await answer(page, problem, wrongValue(problem));
+  await expect(page.getByTestId('not-yet')).toBeVisible();
+  await expect(page.getByTestId('not-yet')).toContainText('Not yet');
+  await expect(page.locator('[data-result="tried"]').first()).toBeVisible();
+
+  // The test voice ends at once, so the moment is brief here: watch for it to appear.
+  await page.evaluate(() => {
+    const seen = window as unknown as { __seen: string[] };
+    seen.__seen = [];
+    new MutationObserver(() => {
+      const pill = document.querySelector('[data-testid="correct"]');
+      if (pill) seen.__seen.push(pill.textContent ?? '');
+      if (document.querySelector('[data-result="right"]')) seen.__seen.push('right-marked');
+    }).observe(document.body, { childList: true, subtree: true, attributes: true });
+  });
+  await answer(page, problem, problem.answer);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __seen: string[] }).__seen))
+    .toEqual(expect.arrayContaining([expect.stringContaining('You got it!'), 'right-marked']));
+});
+
+test('the celebration says how it went, and lists every problem', async ({ page }) => {
+  await setUpChild(page);
+  await page.getByRole('button', { name: 'start quest' }).click();
+  await page.getByRole('button', { name: "Let's go", exact: true }).click();
+  // Miss the first problem once, then play the rest straight.
+  const problem = await problemOnScreen(page);
+  await answer(page, problem, wrongValue(problem));
+  await answer(page, problem, problem.answer);
+  await playUntilBreak(page);
+  await page.getByRole('button', { name: "I'm done" }).click();
+
+  const card = page.getByTestId('how-it-went');
+  await expect(card).toBeVisible();
+  await expect(page.getByTestId('count-second-try')).toHaveText('1');
+  const counts = await Promise.all(
+    ['first-try', 'second-try', 'shown'].map(async (k) =>
+      Number(await page.getByTestId(`count-${k}`).innerText()),
+    ),
+  );
+  const total = counts.reduce((a, b) => a + b, 0);
+  expect(total).toBeGreaterThan(5);
+  await expect(card).toContainText(`${total} problems`);
+
+  await card.getByRole('button', { name: 'See every problem' }).click();
+  await expect(page.getByTestId('problem-list').locator('li')).toHaveCount(total);
+  await expect(page.getByTestId('problem-list').locator('li').first()).toHaveAttribute(
+    'data-result',
+    'second-try',
+  );
+});

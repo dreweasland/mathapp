@@ -7,6 +7,7 @@ import { useGame } from '../game/GameProvider';
 import { localDate } from '../game/today';
 import { BearSays } from '../ui/BearSays';
 import { BigButton } from '../ui/BigButton';
+import { HowItWent } from '../ui/HowItWent';
 import { Icon } from '../ui/icons';
 import { Motion } from '../ui/Motion';
 import { Chest } from '../visuals/Chest';
@@ -84,6 +85,7 @@ export function Celebrate() {
   const streak = use((s) => s.progress?.streak);
   const chest = use((s) => s.progress?.inventory.unopened[0]);
   const badges = use((s) => s.newBadges);
+  const run = use((s) => s.run);
   const current = streak?.current ?? 0;
   const tomorrow = streak ? chestTierTomorrow(streak, localDate(new Date())) : 'bronze';
   return (
@@ -142,6 +144,7 @@ export function Celebrate() {
               )}
             </ul>
           </section>
+          {run && <HowItWent run={run} />}
           {!chest && (
             <p
               data-testid="tomorrow"

@@ -16,6 +16,8 @@ interface Props {
   locked?: boolean;
   /** Sits under the answers: the arrow that moves on from a reveal. */
   footer?: ReactNode;
+  chosen?: string | undefined;
+  outcome?: AnswerProps['outcome'];
 }
 
 function AnswerArea(props: AnswerProps & { onDigit?: ((digit: string) => void) | undefined }) {
@@ -41,6 +43,8 @@ export function ProblemView({
   help = 'none',
   locked = false,
   footer,
+  chosen,
+  outcome,
 }: Props) {
   const reveal = help === 'reveal';
   const written = reveal ? answerText(problem) : '';
@@ -78,6 +82,8 @@ export function ProblemView({
           tried={tried}
           reveal={reveal}
           locked={locked}
+          chosen={chosen}
+          outcome={outcome}
         />
         {footer}
       </div>

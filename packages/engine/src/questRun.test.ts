@@ -15,6 +15,7 @@ import {
   skipChallenge,
   startRun,
   submitAnswer,
+  summarizeRun,
   type QuestRun,
 } from './questRun';
 import type { ChildProfile } from './state';
@@ -478,5 +479,45 @@ describe('completeDailyQuest', () => {
   it('leaves that count alone on a review day', () => {
     const review = quest({}, { mode: 'review' });
     expect(completeDailyQuest({ ...input, quest: review }).states['s']?.questsOnSkill).toBe(0);
+  });
+});
+
+describe('the end-of-quest summary', () => {
+  it('records each problem once: first try, second try, or shown', () => {
+    let run = started(quest({ warmup: items(3) }));
+    run = advance(right(run).run);
+    run = advance(right(wrong(run, '8').run).run);
+    run = wrong(wrong(run, '9').run, '6').run;
+    const summary = summarizeRun(run);
+    expect([summary.firstTry, summary.secondTry, summary.shown]).toEqual([1, 1, 1]);
+    expect(summary.items.map((i) => [i.item, i.result, i.tried])).toEqual([
+      [0, 'first-try', []],
+      [1, 'second-try', ['8']],
+      [2, 'shown', ['9', '6']],
+    ]);
+    expect(summary.items[0]?.kind).toBe('warmup');
+    expect(summary.items[0]?.problem.answer).toBe('7');
+  });
+  it('a day-1 replay after seeing the answer keeps the first result', () => {
+    const q = quest({ skill: items(1, { finalWin: true }) }, { endOnWin: true });
+    let run = beginSection(advance(right(started(q)).run));
+    run = advance(wrong(wrong(run).run).run);
+    run = right(run).run;
+    const summary = summarizeRun(run);
+    expect(summary.items.filter((i) => i.section === 1).map((i) => i.result)).toEqual(['shown']);
+  });
+  it('worked examples are not attempts, so they are not listed', () => {
+    let run = started(quest({ warmup: items(2, { workedExample: true }) }));
+    run = finishWorkedExample(run);
+    expect(summarizeRun(run).items).toEqual([]);
+  });
+  it('a run saved before results existed summarises as empty', () => {
+    const run = { ...started(quest({})) };
+    delete run.results;
+    expect(summarizeRun(run)).toMatchObject({ firstTry: 0, secondTry: 0, shown: 0, items: [] });
+  });
+  it('the wrong first answer is forgotten on the next problem', () => {
+    const run = advance(right(wrong(started(quest({ warmup: items(2) })), '8').run).run);
+    expect(run.firstTried).toBeUndefined();
   });
 });

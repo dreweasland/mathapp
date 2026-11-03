@@ -2,7 +2,7 @@ import { classifyError } from './errors';
 import { newFactCard, reviewCard } from './factDeck';
 import { refreshUnlocks } from './frontier';
 import { applyResult, newSkillState, outcomeFor } from './mastery';
-import type { DailyQuest, QuestItem } from './quest';
+import type { DailyQuest, QuestItem, QuestSection } from './quest';
 import { recordQuestOnSkill, signature } from './quest';
 import type {
   ChildProfile,
@@ -25,6 +25,16 @@ import { coinsForAnswer, COINS, earnCoins } from './wallet';
 export type RunStage =
   'section-intro' | 'worked-example' | 'answering' | 'feedback' | 'offer-challenge' | 'finished';
 
+/** How one problem went, for the end-of-quest summary. Nothing here is ever counted against the child. */
+export type ProblemResultKind = 'first-try' | 'second-try' | 'shown';
+export interface ProblemResult {
+  section: number;
+  item: number;
+  result: ProblemResultKind;
+  /** Answers tried that weren't right, in order. */
+  tried: string[];
+}
+
 export interface QuestRun {
   quest: DailyQuest;
   stage: RunStage;
@@ -45,6 +55,10 @@ export interface QuestRun {
   challengeDone: boolean;
   /** Days 1–3: the last problem has already been given a second go. */
   finalReplayed: boolean;
+  /** One entry per problem answered, first result only. Missing on runs saved before it existed. */
+  results?: ProblemResult[];
+  /** The wrong first answer on the current problem. */
+  firstTried?: string;
 }
 
 export type TryResult =
@@ -85,6 +99,7 @@ const fresh = (run: QuestRun): QuestRun => {
   const next = { ...run, misses: 0 as const };
   delete next.firstError;
   delete next.lastOutcome;
+  delete next.firstTried;
   return next;
 };
 
@@ -141,6 +156,36 @@ export interface SubmitInput {
 }
 
 /** Applies one try. Returns undefined if this isn't a moment to answer, such as a double tap. */
+/** The first result for a problem stands: a day-1 replay after seeing the answer doesn't rewrite it. */
+function recordResult(run: QuestRun, result: ProblemResultKind, tried: string[]): ProblemResult[] {
+  const results = run.results ?? [];
+  if (results.some((r) => r.section === run.section && r.item === run.item)) return results;
+  return [...results, { section: run.section, item: run.item, result, tried }];
+}
+
+export interface RunSummary {
+  firstTry: number;
+  secondTry: number;
+  shown: number;
+  items: (ProblemResult & { problem: Problem; kind: QuestSection['kind'] })[];
+}
+
+/** Counts and the list behind them, in the order the problems came. */
+export function summarizeRun(run: QuestRun): RunSummary {
+  const items = (run.results ?? []).flatMap((r) => {
+    const section = run.quest.sections[r.section];
+    const problem = section?.items[r.item]?.problem;
+    return section && problem ? [{ ...r, problem, kind: section.kind }] : [];
+  });
+  const count = (kind: ProblemResultKind) => items.filter((i) => i.result === kind).length;
+  return {
+    firstTry: count('first-try'),
+    secondTry: count('second-try'),
+    shown: count('shown'),
+    items,
+  };
+}
+
 export function submitAnswer(
   run: QuestRun,
   { given, responseMs, fastMs }: SubmitInput,
@@ -153,16 +198,25 @@ export function submitAnswer(
   if (!correct && tryNumber === 1) {
     const errorType = classifyError(item.problem, given);
     return {
-      run: { ...run, misses: 1, firstError: errorType, inARow: 0 },
+      run: { ...run, misses: 1, firstError: errorType, firstTried: given, inARow: 0 },
       result: { kind: 'retry', errorType, tryNumber: 1 },
     };
   }
 
   const answered = run.answered + 1;
+  const tried = [
+    ...(run.firstTried !== undefined ? [run.firstTried] : []),
+    ...(correct ? [] : [given]),
+  ];
+  const results = recordResult(
+    run,
+    !correct ? 'shown' : tryNumber === 1 ? 'first-try' : 'second-try',
+    tried,
+  );
   if (!correct) {
     const errorType = classifyError(item.problem, given);
     return {
-      run: { ...run, stage: 'feedback', answered, lastOutcome: 'missed', inARow: 0 },
+      run: { ...run, stage: 'feedback', answered, lastOutcome: 'missed', inARow: 0, results },
       result: { kind: 'reveal', outcome: 'missed', errorType, tryNumber: 2 },
     };
   }
@@ -185,6 +239,7 @@ export function submitAnswer(
       inARow,
       bestInARow: Math.max(run.bestInARow, inARow),
       lastOutcome: outcome,
+      results,
     },
     result: { kind: 'correct', outcome, coins, tryNumber },
   };

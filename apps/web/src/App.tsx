@@ -1,6 +1,7 @@
 import type { ChildSettings } from '@mathapp/engine';
 import { lazy, Suspense, useEffect, type JSX } from 'react';
 import { useGame } from './game/GameProvider';
+import { BadgeReveal } from './screens/BadgeReveal';
 import { Cheer } from './screens/Cheer';
 import { Home } from './screens/Home';
 import { Placement } from './screens/Placement';
@@ -108,6 +109,7 @@ export function App() {
   const { actions, use } = useGame();
   const settings = use((s) => s.child?.settings);
   const chestOpen = use((s) => s.openedChest !== undefined);
+  const badgeWaiting = use((s) => s.badgeShow.length > 0);
   useEffect(() => applySettings(settings), [settings]);
   useEffect(() => {
     void actions.open();
@@ -128,6 +130,7 @@ export function App() {
       </Suspense>
       {/* Its own boundary, so loading it can't blank the screen behind the chest. */}
       <Suspense fallback={null}>{chestOpen && <ChestReveal />}</Suspense>
+      {badgeWaiting && <BadgeReveal />}
     </>
   );
 }

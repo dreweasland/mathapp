@@ -4,6 +4,7 @@ import { Clock } from '../visuals/Clock';
 import { LengthBar, lengthObjects } from '../visuals/Lengths';
 import { CoinRow, Frac } from '../visuals/Numbers';
 import { Shape, Shares } from '../visuals/Shape';
+import { Icon } from '../ui/icons';
 import { orderedChoices, prettyMath } from './format';
 
 export interface AnswerProps {
@@ -14,12 +15,29 @@ export interface AnswerProps {
   /** Shows the answer and takes no input. */
   reveal: boolean;
   locked: boolean;
+  /** The answer just given, and how it went, so the child sees it on the answer itself. */
+  chosen?: string | undefined;
+  outcome?: 'correct' | 'retry' | 'reveal' | undefined;
 }
 
-const stateClass = (reveal: boolean, isAnswer: boolean, wasTried: boolean) => {
+const stateClass = (
+  reveal: boolean,
+  isAnswer: boolean,
+  wasTried: boolean,
+  justPicked?: AnswerProps['outcome'],
+) => {
+  if (justPicked === 'correct') return 'tap-answer pop';
   if (reveal && isAnswer) return 'tap-answer';
+  if (justPicked === 'retry') return 'tap-used shake';
   return reveal || wasTried ? 'tap-used' : '';
 };
+
+/** A tick in the corner of the answer that was right. */
+const RightMark = () => (
+  <span aria-hidden="true" className="pop absolute -top-3 -right-3">
+    <Icon name="done" size={30} />
+  </span>
+);
 
 function parseClock(value: string) {
   const [hour = '12', minute = '0'] = value.split(':');
@@ -91,24 +109,36 @@ function layoutFor(problem: Problem, count: number) {
   return count === 3 ? 'grid-cols-3' : 'grid-cols-2';
 }
 
-export function Choices({ problem, onAnswer, tried, reveal, locked }: AnswerProps) {
+export function Choices({
+  problem,
+  onAnswer,
+  tried,
+  reveal,
+  locked,
+  chosen,
+  outcome,
+}: AnswerProps) {
   const values = orderedChoices(problem);
   const text = problem.operands.kind === 'family' ? 'text-3xl' : 'text-4xl';
   return (
     <div className={`grid gap-3 ${layoutFor(problem, values.length)}`}>
       {values.map((value) => {
         const wasTried = tried.includes(value);
+        const picked = value === chosen ? outcome : undefined;
+        const right = (reveal && value === problem.answer) || picked === 'correct';
         return (
           <button
             key={value}
             type="button"
             data-value={value}
+            data-result={picked === 'correct' ? 'right' : wasTried ? 'tried' : undefined}
             aria-label={choiceLabel(problem, value)}
             disabled={wasTried || reveal || locked}
             onClick={() => onAnswer(value)}
-            className={`tap min-h-20 p-2 font-extrabold ${text} ${stateClass(reveal, value === problem.answer, wasTried)}`}
+            className={`tap min-h-20 p-2 font-extrabold ${text} ${stateClass(reveal, value === problem.answer, wasTried, picked)}`}
           >
             <ChoiceFace problem={problem} value={value} />
+            {right && <RightMark />}
           </button>
         );
       })}
@@ -126,6 +156,8 @@ export function NumberPad({
   reveal,
   locked,
   onDigit,
+  chosen,
+  outcome,
 }: AnswerProps & { onDigit?: (digit: string) => void }) {
   const [entry, setEntry] = useState('');
   const [lastDigitAt, setLastDigitAt] = useState(0);
@@ -146,13 +178,24 @@ export function NumberPad({
     );
   }
   const key = 'tap min-h-16 text-4xl font-extrabold';
+  // After a check, the number stays in the box until the child types again: green if right.
+  const shown = entry || (chosen !== undefined && outcome !== undefined ? chosen : '');
+  const after = entry === '' && shown !== '' ? outcome : undefined;
   return (
     <div className="flex flex-col gap-2">
       <output
         aria-label="your answer"
-        className="flex h-16 items-center justify-center rounded-2xl border-4 border-dashed border-ink/40 bg-white text-5xl font-extrabold tabular-nums"
+        data-result={after === 'correct' ? 'right' : after ? 'tried' : undefined}
+        className={`relative flex h-16 items-center justify-center rounded-2xl border-4 bg-white text-5xl font-extrabold tabular-nums ${
+          after === 'correct'
+            ? 'pop border-solid border-ink bg-leaf'
+            : after
+              ? 'shake border-dashed border-ink/40 text-ink-soft line-through decoration-4'
+              : 'border-dashed border-ink/40'
+        }`}
       >
-        {entry || ' '}
+        {shown || ' '}
+        {after === 'correct' && <RightMark />}
       </output>
       <div className="pad-keys grid grid-cols-3 gap-2">
         {KEYS.map((n) => (
@@ -247,7 +290,15 @@ export function TenFrameTap({ problem, onAnswer, reveal, locked }: AnswerProps) 
 }
 
 /** At 64px per target, a 0–20 line can't fit an iPhone, so it wraps into a number path. */
-export function NumberPath({ problem, onAnswer, tried, reveal, locked }: AnswerProps) {
+export function NumberPath({
+  problem,
+  onAnswer,
+  tried,
+  reveal,
+  locked,
+  chosen,
+  outcome,
+}: AnswerProps) {
   const { min = 0, max = 10 } = problem.numberLine ?? {};
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => String(min + i));
   return (
@@ -257,16 +308,19 @@ export function NumberPath({ problem, onAnswer, tried, reveal, locked }: AnswerP
     >
       {numbers.map((n) => {
         const wasTried = tried.includes(n);
+        const picked = n === chosen ? outcome : undefined;
         return (
           <button
             key={n}
             type="button"
             data-value={n}
+            data-result={picked === 'correct' ? 'right' : wasTried ? 'tried' : undefined}
             disabled={wasTried || reveal || locked}
             onClick={() => onAnswer(n)}
-            className={`tap min-h-16 text-3xl font-extrabold tabular-nums ${stateClass(reveal, n === problem.answer, wasTried)}`}
+            className={`tap min-h-16 text-3xl font-extrabold tabular-nums ${stateClass(reveal, n === problem.answer, wasTried, picked)}`}
           >
             {n}
+            {picked === 'correct' && <RightMark />}
           </button>
         );
       })}

@@ -150,7 +150,14 @@ export interface GameState {
   /** A Fact Blitz in progress. */
   blitz?: BlitzRun;
   /** What the last free-play set earned, for its small ending screen. */
-  freeResult?: { coins: number; score?: number; best?: number; isBest?: boolean };
+  freeResult?: {
+    coins: number;
+    score?: number;
+    best?: number;
+    isBest?: boolean;
+    /** Practice keeps its run so the summary can list the problems. */
+    run?: QuestRun;
+  };
   /** The day this data was loaded for. */
   enteredOn?: string;
   progress?: ChildProgress;
@@ -159,6 +166,8 @@ export interface GameState {
   feedback?: TryResult;
   /** Choices already tried on this problem, shown as used. */
   triedValues: string[];
+  /** The answer just given, shown on the answer itself until the next problem or tap. */
+  chosen?: string;
   mood: Mood;
   todayDone: boolean;
   /** Speech from settling missed days, said once on the home screen. */
@@ -167,6 +176,8 @@ export interface GameState {
   missions: Mission[];
   /** Badges earned in this quest, for the celebration. */
   newBadges: string[];
+  /** Badges waiting to be shown full screen, one at a time, when a quest or free play ends. */
+  badgeShow: string[];
   /** Said when the celebration ends: warm on a rough day too. */
   farewell?: Speech;
   /** The chest being shown right now. */
@@ -197,6 +208,7 @@ export function createGame(deps: GameDeps) {
     celebration: [],
     missions: [],
     newBadges: [],
+    badgeShow: [],
     saveFailed: false,
     noteDismissed: false,
   }));
@@ -308,7 +320,7 @@ export function createGame(deps: GameDeps) {
 
   function present(run: QuestRun) {
     const item = currentItem(run);
-    set({ feedback: undefined, triedValues: [], mood: 'idle' });
+    set({ feedback: undefined, triedValues: [], chosen: undefined, mood: 'idle' });
     if (run.stage === 'section-intro') {
       const kind = currentSection(run)?.kind;
       speaker.say({
@@ -338,14 +350,18 @@ export function createGame(deps: GameDeps) {
     delete ended.run;
     save({ session: ended });
     set({ session: undefined, run: undefined, blitz: undefined, freeResult: result });
-    set({ screen: 'free-done', mood: 'cheer', feedback: undefined });
+    set({ screen: 'free-done', mood: 'cheer', feedback: undefined, badgeShow: get().newBadges });
     play('cheer');
-    speaker.say(line);
+    sayInOrder([...badgeLines(get().newBadges), line]);
+  }
+
+  function badgeLines(ids: string[]): Speech[] {
+    return ids.map((id) => ({ key: 'badge.earned', params: { badge: render(`badge.${id}`) } }));
   }
 
   function celebrate(run: QuestRun, skipped = false) {
     if (run.quest.free) {
-      endFreeSession({ coins: run.coins }, { key: 'free.done', params: { coins: run.coins } });
+      endFreeSession({ coins: run.coins, run }, { key: 'free.done', params: { coins: run.coins } });
       return;
     }
     const session = need(get().session);
@@ -363,13 +379,11 @@ export function createGame(deps: GameDeps) {
     save({ session: ended });
     const farewell: Speech = { key: roughDay ? 'quest.rough-day' : 'quest.done' };
     const lines: Speech[] = [
+      // A new badge is the biggest news, so it's shown and said first.
+      ...badgeLines(get().newBadges),
       ...(skipped ? [{ key: 'quest.challenge-skip' }] : []),
       { key: 'quest.coins', params: { coins: run.coins } },
       ...get().celebration,
-      ...get().newBadges.map((id) => ({
-        key: 'badge.earned',
-        params: { badge: render(`badge.${id}`) },
-      })),
       ...(allMissionsDone(get().missions) ? [{ key: 'mission.all-done' }] : []),
       ...(run.challengeDone && get().child?.dailyGoal === 'quest+challenge'
         ? [{ key: 'daily.met' }]
@@ -377,7 +391,14 @@ export function createGame(deps: GameDeps) {
       // With a chest waiting, the goodbye comes after it's open.
       get().progress?.inventory.unopened.length ? { key: 'chest.tap' } : farewell,
     ];
-    set({ session: ended, screen: 'celebrate', mood: 'cheer', todayDone: true, farewell });
+    set({
+      session: ended,
+      screen: 'celebrate',
+      mood: 'cheer',
+      todayDone: true,
+      farewell,
+      badgeShow: get().newBadges,
+    });
     play('cheer');
     sayInOrder(lines);
   }
@@ -716,6 +737,7 @@ export function createGame(deps: GameDeps) {
         run: undefined,
         cheer: undefined,
         homeNote: undefined,
+        badgeShow: [],
         backupDue: backupDue(details, child.questsCompleted, at),
         progress: { ...data, states, streak: settled.streak },
         todayDone: sessions.some((s) => s.type === 'quest' && s.completedQuest && !s.run),
@@ -937,14 +959,24 @@ export function createGame(deps: GameDeps) {
 
       // Everything the child sees and hears happens before any storage work.
       if (result.kind === 'retry') {
-        set({ feedback: result, mood: 'thinking', triedValues: [...get().triedValues, given] });
+        set({
+          feedback: result,
+          chosen: given,
+          mood: 'thinking',
+          triedValues: [...get().triedValues, given],
+        });
         play('not-yet');
         updateRun(next, { attempt });
         prompt({ key: 'feedback.retry' });
         return;
       }
       if (result.kind === 'reveal') {
-        set({ feedback: result, mood: 'thinking', triedValues: [...get().triedValues, given] });
+        set({
+          feedback: result,
+          chosen: given,
+          mood: 'thinking',
+          triedValues: [...get().triedValues, given],
+        });
         play('not-yet');
         const scored = settle(where(next), problem, 'missed', ms, 0);
         updateRun(next, { attempt, ...scored });
@@ -952,7 +984,7 @@ export function createGame(deps: GameDeps) {
         return;
       }
 
-      set({ feedback: result, mood: 'happy' });
+      set({ feedback: result, chosen: given, mood: 'happy' });
       play('correct', Math.max(0, next.inARow - 1));
       const cardBefore = problem.factId ? get().progress?.cards.get(problem.factId) : undefined;
       const scored = settle(where(next), problem, result.outcome, ms, result.coins);
@@ -1059,7 +1091,12 @@ export function createGame(deps: GameDeps) {
       blitzRng = rng;
       const session = newSession(child.id, 'blitz', at);
       const problem = nextBlitzProblem(skillId, undefined, rng);
-      set({ session, screen: 'blitz', blitz: { id, skillId, problem, score: 0, coins: 0 } });
+      set({
+        session,
+        screen: 'blitz',
+        blitz: { id, skillId, problem, score: 0, coins: 0 },
+        newBadges: [],
+      });
       save({ session });
       shownAt = now();
       speechEndedAt = undefined;
@@ -1153,6 +1190,13 @@ export function createGame(deps: GameDeps) {
               ? { key: 'chest.item', params: { item: name } }
               : { key: 'chest.coins', params: { coins: reward.coins } };
       sayInOrder(reward.setCompleted ? [line, { key: 'chest.set-done' }] : [line]);
+    },
+
+    /** The badge stays on the trophy wall; this only moves past its big moment. */
+    closeBadge() {
+      play('tap');
+      const [, ...rest] = get().badgeShow;
+      set({ badgeShow: rest });
     },
 
     closeChest() {

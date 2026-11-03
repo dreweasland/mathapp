@@ -4,6 +4,7 @@ import { SkillIcon } from '../game/art';
 import { useGame } from '../game/GameProvider';
 import { BigButton } from '../ui/BigButton';
 import { BearSays } from '../ui/BearSays';
+import { HowItWent } from '../ui/HowItWent';
 import { Icon } from '../ui/icons';
 import { PlaceFrame } from '../ui/PlaceFrame';
 
@@ -86,7 +87,7 @@ export function FreeDone() {
   const { actions, use } = useGame();
   const result = use((s) => s.freeResult);
   return (
-    <main className="screen items-center justify-center gap-5 text-center" data-testid="free-done">
+    <main className="screen items-center gap-4 overflow-y-auto text-center" data-testid="free-done">
       <h1 className="text-4xl font-black">Nice practice!</h1>
       <BearSays mood="cheer" size={100} />
       <section className="card flex w-full max-w-md flex-col gap-2 text-xl font-extrabold">
@@ -112,6 +113,7 @@ export function FreeDone() {
           <span className="font-black">+{result?.coins ?? 0}</span>
         </p>
       </section>
+      {result?.run && <HowItWent run={result.run} />}
       <BigButton
         label="Home"
         aria-label="home"

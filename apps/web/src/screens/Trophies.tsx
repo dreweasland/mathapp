@@ -3,6 +3,7 @@ import { activeGrade, MILESTONES } from '@mathapp/engine';
 import { useState } from 'react';
 import { SkillIcon } from '../game/art';
 import { useGame } from '../game/GameProvider';
+import { localDate } from '../game/today';
 import { BigButton } from '../ui/BigButton';
 import { MyMascot } from '../ui/MyMascot';
 import { Icon } from '../ui/icons';
@@ -50,6 +51,7 @@ export function Trophies() {
   const { actions, use } = useGame();
   const states = use((s) => s.progress?.states) ?? {};
   const best = use((s) => s.progress?.streak.best ?? 0);
+  const today = use((s) => s.enteredOn);
   const [certificate, setCertificate] = useState<number>();
   // Earlier grades stay on the wall; later ones wait until the child gets there.
   const grade = activeGrade(ALL_SKILLS, states);
@@ -65,7 +67,9 @@ export function Trophies() {
     >
       <div className="mx-auto grid max-w-md grid-cols-3 gap-3" data-testid="trophies">
         {skills.map((skill) => {
-          const earned = states[skill.id]?.masteredAt !== undefined;
+          const masteredAt = states[skill.id]?.masteredAt;
+          const earned = masteredAt !== undefined;
+          const isNew = earned && today !== undefined && localDate(new Date(masteredAt)) === today;
           return (
             <button
               key={skill.id}
@@ -87,6 +91,14 @@ export function Trophies() {
               <span aria-hidden="true" className="text-[11px] leading-tight font-extrabold">
                 {earned ? skill.badgeName : skill.kidName}
               </span>
+              {isNew && (
+                <span
+                  data-testid="new-ribbon"
+                  className="absolute -top-2.5 -right-2 rotate-6 rounded-full border-2 border-ink bg-ink px-2 py-0.5 text-xs font-black text-white"
+                >
+                  New!
+                </span>
+              )}
             </button>
           );
         })}

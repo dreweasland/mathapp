@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openChests, patchRow, playUntilBreak, setUpChild, stubSpeech } from './helpers';
+import { openChests, patchRow, playUntilBreak, said, setUpChild, stubSpeech } from './helpers';
 
 const DAY_ONE = new Date(2026, 10, 2, 16).getTime();
 const DAY = 24 * 60 * 60 * 1000;
@@ -161,4 +161,26 @@ test('every new screen keeps tap targets and fits, on all five sizes', async ({ 
     }
   }
   expect(failures).toEqual([]);
+});
+
+test('a new badge gets its own big moment, then a New! ribbon on the trophy wall', async ({
+  page,
+}) => {
+  await page.removeLocatorHandler(page.getByTestId('badge-reveal'));
+  await page.waitForTimeout(500);
+  await patchRow(page, 'skillStates', { mastery: 99, attempts: 40 });
+  await page.reload();
+  await page.getByRole('button', { name: 'start quest' }).click();
+  await playUntilBreak(page);
+  const reveal = page.getByTestId('badge-reveal');
+  await page.getByRole('button', { name: "I'm done" }).click();
+  await expect(reveal).toBeVisible();
+  await expect(reveal).toContainText('New badge!');
+  expect((await said(page)).join(' ')).toContain('You earned a new badge!');
+  while (await reveal.isVisible()) await reveal.getByRole('button', { name: 'next' }).click();
+  await expect(page.getByTestId('celebrate')).toBeVisible();
+  await openChests(page);
+  await page.getByRole('button', { name: 'home' }).click();
+  await page.getByRole('button', { name: 'trophies' }).click();
+  await expect(page.getByTestId('new-ribbon').first()).toBeVisible();
 });

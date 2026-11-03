@@ -83,12 +83,47 @@ function StepBar({ run }: { run: QuestRun }) {
   );
 }
 
+/** What just happened, in the header where it can't be missed or pushed off a small screen. */
+function FeedbackPill() {
+  const { use } = useGame();
+  const feedback = use((s) => s.feedback);
+  if (!feedback) return null;
+  if (feedback.kind === 'correct') {
+    return (
+      <p
+        data-testid="correct"
+        className="pop flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border-3 border-ink bg-leaf px-2 py-1 text-xl font-black"
+      >
+        <Icon name="check" size={24} />
+        {feedback.tryNumber === 2 ? 'You got it!' : 'Yes!'}
+        <span className="flex items-center gap-0.5 text-base">
+          <Icon name="coin" size={20} />+{feedback.coins}
+        </span>
+      </p>
+    );
+  }
+  return (
+    <p
+      data-testid={feedback.kind === 'retry' ? 'not-yet' : 'shown'}
+      className="pop flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl border-3 border-ink bg-[#fff3c4] px-2 py-1 text-center text-base leading-tight font-black"
+    >
+      <Icon name={feedback.kind === 'retry' ? 'help' : 'bulb'} size={24} />
+      {feedback.kind === 'retry' ? 'Not yet! Look at the hint, try again' : "Here's the answer"}
+    </p>
+  );
+}
+
 function Header({ run }: { run: QuestRun }) {
-  const { actions } = useGame();
+  const { actions, use } = useGame();
+  const feedback = use((s) => s.feedback);
   return (
     <header className="flex items-center gap-2">
       <IconButton icon="home" label="Home" aria-label="home" onClick={actions.goHome} />
-      <StepBar run={run} />
+      {feedback && run.stage !== 'section-intro' && run.stage !== 'offer-challenge' ? (
+        <FeedbackPill />
+      ) : (
+        <StepBar run={run} />
+      )}
       <IconButton icon="speaker" label="Again" aria-label="say it again" onClick={actions.replay} />
     </header>
   );
@@ -191,6 +226,7 @@ export function Quest() {
   const run = use((s) => s.run);
   const feedback = use((s) => s.feedback);
   const tried = use((s) => s.triedValues);
+  const chosen = use((s) => s.chosen);
   const mood = use((s) => s.mood);
   if (!run) return null;
   const section = currentSection(run);
@@ -203,7 +239,6 @@ export function Quest() {
   const worked = run.stage === 'worked-example';
   const showAnswer = worked || feedback?.kind === 'reveal';
   const help = showAnswer ? 'reveal' : run.misses > 0 ? 'hint' : 'none';
-  const correct = feedback?.kind === 'correct';
 
   return (
     <main
@@ -214,16 +249,6 @@ export function Quest() {
     >
       <h1 className="sr-only">Daily quest</h1>
       <Header run={run} />
-      {correct && (
-        <p
-          data-testid="correct"
-          className="pop absolute top-24 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-2xl border-3 border-ink bg-leaf px-4 py-1.5 text-2xl font-black shadow-[0_4px_0_var(--color-ink)]"
-        >
-          <Icon name="check" size={26} />
-          Yes!
-          <Icon name="coin" size={26} />+{feedback.coins}
-        </p>
-      )}
       <div className="quest-caption flex items-center gap-2">
         <MyMascot mood={mood} size={44} />
         <CaptionLine />
@@ -232,11 +257,6 @@ export function Quest() {
         <p className="section-label -mt-1 text-center" data-testid="worked">
           Watch how this one works
         </p>
-      )}
-      {run.misses > 0 && !showAnswer && (
-        <div data-testid="not-yet" className="sr-only">
-          not yet
-        </div>
       )}
       <ProblemView
         key={`${run.section}.${run.item}.${run.finalReplayed}`}
@@ -247,6 +267,8 @@ export function Quest() {
         tried={tried}
         help={help}
         locked={run.stage !== 'answering'}
+        chosen={chosen}
+        outcome={feedback?.kind}
         footer={
           showAnswer ? (
             <BigButton

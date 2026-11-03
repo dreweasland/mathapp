@@ -599,6 +599,13 @@ describe('badges', () => {
     env.game.actions.skipChallenge();
     expect(env.state().newBadges).toEqual([skill]);
     expect(env.said.map((l) => l.key)).toContain('badge.earned');
+    // Shown full screen first, and said before the coins and the rest.
+    expect(env.state().badgeShow).toEqual([skill]);
+    const keys = env.said.map((l) => l.key);
+    expect(keys.indexOf('badge.earned')).toBeLessThan(keys.indexOf('quest.coins'));
+    env.game.actions.closeBadge();
+    expect(env.state().badgeShow).toEqual([]);
+    expect(env.state().progress?.states[skill]?.masteredAt).toBeDefined();
   });
 });
 

@@ -3,6 +3,7 @@ import type { Problem, QuestRun } from '@mathapp/engine';
 
 /** Records what the app says, and finishes each line at once so tests don't wait on a voice. */
 export async function stubSpeech(page: Page) {
+  await passBadges(page);
   await page.addInitScript(() => {
     const said: string[] = [];
     (window as unknown as { __said: string[] }).__said = said;
@@ -18,6 +19,16 @@ export async function stubSpeech(page: Page) {
         },
       },
     });
+  });
+}
+
+/**
+ * A new badge takes the whole screen until it's tapped past. Most tests aren't about badges,
+ * so whenever one is in the way it's closed the way a child would.
+ */
+export async function passBadges(page: Page) {
+  await page.addLocatorHandler(page.getByTestId('badge-reveal'), async (dialog) => {
+    await dialog.getByRole('button', { name: 'next' }).click();
   });
 }
 

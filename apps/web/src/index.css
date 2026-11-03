@@ -259,6 +259,23 @@ button {
     opacity: 1;
   }
 }
+.shake {
+  animation: shake 360ms ease-out;
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
+}
 .blitz-fill {
   animation: blitz-fill linear forwards;
 }
@@ -272,7 +289,8 @@ button {
 }
 @media (prefers-reduced-motion: reduce) {
   .bounce,
-  .pop {
+  .pop,
+  .shake {
     animation: none;
   }
 }
@@ -288,7 +306,8 @@ button {
   transition: none !important;
 }
 :root[data-motion='reduced'] .bounce,
-:root[data-motion='reduced'] .pop {
+:root[data-motion='reduced'] .pop,
+:root[data-motion='reduced'] .shake {
   animation: none;
 }
 /* Check mark under the left thumb, and the answers on the left when the phone is sideways. */
