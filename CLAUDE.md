@@ -5,10 +5,10 @@ A local-first math practice PWA for a 6-year-old. `MATH_APP_BRIEF.md` is the pro
 ## Stack
 
 - TypeScript (strict) everywhere, npm workspaces.
-- `apps/web`: React + Vite, `vite-plugin-pwa`, Tailwind, Dexie (IndexedDB). Zustand and Framer Motion arrive in Phase 2.
+- `apps/web`: React + Vite, `vite-plugin-pwa`, Tailwind, Dexie (IndexedDB), Zustand (game state), Framer Motion (celebration only). Sound effects are synthesized with Web Audio; speech uses the Web Speech API.
 - `packages/engine`: pure logic with **zero runtime dependencies** and no React.
 - `packages/content`: skill metadata and speech strings. Depends only on the engine's types.
-- Tests: Vitest (unit), Playwright on WebKit with an iPhone profile (e2e). No backend in MVP.
+- Tests: Vitest (unit, plus Testing Library for components), Playwright on WebKit with an iPhone profile (e2e). No backend in MVP.
 
 ## Folder layout
 
@@ -16,15 +16,22 @@ A local-first math practice PWA for a 6-year-old. `MATH_APP_BRIEF.md` is the pro
 apps/web/                  PWA shell
   src/config.ts            app name (one value, still to be chosen with the child)
   src/db/                  Dexie schema and typed repositories; all writes go through repositories
-  e2e/                     Playwright
+  src/game/                store.ts: the one game store, built from injected deps so tests need no browser
+  src/audio/               speech.ts (always by string key), sfx.ts
+  src/question/            ProblemView = Prompt + Hint + Answers; one renderer for all 6 question types
+  src/visuals/ src/ui/     clock, ten-frame, shapes, base-ten; mascot, big button
+  src/screens/             Setup, Placement, Home, Quest, Celebrate
+  src/gallery.tsx          dev-only page of any problem, for layout tests; never in the build
+  e2e/                     Playwright: offline, quest, layout
 packages/engine/src/
   rng.ts dates.ts          seeded RNG, date-string helpers
   types.ts                 shared types
   generators/              one generator + test per skill
   mastery difficulty frontier placement factDeck    adaptive logic
   streak wallet goals missions quest                daily loop logic
+  questRun                 tries, sections, end-on-win, resume, scoring (pure; the store just calls it)
   audit.test.ts            independent answer-key audit
-packages/content/src/      grade1.ts (skills), strings.en.ts (speech and praise)
+packages/content/src/      grade1.ts (skills), strings.en.ts (speech and praise), answerSpeech.ts
 scripts/                   demo-quest.ts and fixtures
 ```
 
@@ -35,7 +42,7 @@ Engine rules: functions are pure, take `today` as a local `YYYY-MM-DD` string, a
 ```
 npm test             all unit tests
 npm run coverage     engine coverage (threshold 90%)
-npm run e2e          build the PWA and run the offline smoke test (first run: npx playwright install webkit)
+npm run e2e          build the PWA, play full quests, check layouts (first run: npx playwright install webkit)
 npm run demo         print a Daily Quest (see README for options)
 npm run lint         ESLint + Prettier
 npm run typecheck    tsc across all workspaces
@@ -60,7 +67,22 @@ Agreed with the parent before Phase 0.
 - **Mastery pace:** all-fast answers earn a badge at 15 attempts, all-slow-but-correct at 18. Each skill has its own `fastMs`; the 3-second bar is for within-10 facts.
 - **Time budget beats problem count:** slow skills (word problems) get fewer problems, down to 8, to protect the 5–8 minutes.
 - **Profiles:** tap your avatar, no picture password. Theme: animals.
+- **Number line:** a 0–20 line cannot fit an iPhone at 64px per target, so tappable lines wrap into a number path of rows. Hints still draw a true line with hops.
+- **Worked examples:** the tap-through shows the question, the visual and the answer. It is not an attempt, so it earns nothing and doesn't touch mastery.
+- **What counts for the day:** finishing warm-up and today's skill. The challenge comes after, so skipping it or closing the app there can't affect the streak.
+- **One quest a day, resumable the same day:** an unfinished quest resumes where it stopped; one left from an earlier day is abandoned, with its coins kept.
+- **Ending on a win:** on days 1–3 a missed final problem comes back once, right after its answer was shown. Level 1 has nothing easier to offer.
+- **Challenge bonus:** 5 coins. The brief promises a bonus but gives no number.
+- **Placement feedback:** the same neutral response for right and wrong, with one try and no hints.
+- **Response clock:** starts when the prompt finishes speaking, or at display if the child answers first. On the number pad it stops at the last digit, not at the check mark.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
+
+## How the quest UI works
+
+- Tap path: a tap updates in-memory state, sound and screen first. Saving is queued afterward, so storage can never delay feedback.
+- The whole `QuestRun` is saved on the session row after every step. That is what makes resume work, and e2e reads answers from it, so production has no test hooks.
+- Every child control uses the `.tap` class, which enforces 64px. `e2e/layout.spec.ts` checks size and fit for all question shapes on five viewports; add new shapes to its `CASES`.
+- A new generator's output must render in `ProblemView`; `ProblemView.test.tsx` answers every generator's problems through the real screen.
 
 ## 2. Non-negotiables
 

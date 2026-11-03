@@ -15,3 +15,4 @@ export * from './wallet';
 export * from './goals';
 export * from './missions';
 export * from './quest';
+export * from './questRun';
