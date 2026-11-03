@@ -10,10 +10,13 @@ vi.setConfig({ testTimeout: 60_000 });
 
 const LEVELS: Difficulty[] = [1, 2, 3, 4, 5];
 
+type Generate = (typeof GENERATORS)[string];
+
+const problemsFrom = (generate: Generate, seeds = 24): Problem[] =>
+  LEVELS.flatMap((d) => Array.from({ length: seeds }, (_, i) => generate(mulberry32(i * 31), d)));
+
 function everyProblem(seeds = 24): Problem[] {
-  return Object.values(GENERATORS).flatMap((generate) =>
-    LEVELS.flatMap((d) => Array.from({ length: seeds }, (_, i) => generate(mulberry32(i * 31), d))),
-  );
+  return Object.values(GENERATORS).flatMap((generate) => problemsFrom(generate, seeds));
 }
 
 const show = (problem: Problem, over = {}) => {
@@ -42,8 +45,9 @@ function giveAnswer(problem: Problem, container: HTMLElement) {
   }
 }
 
-describe('every problem a generator can make', () => {
-  const problems = everyProblem();
+// One block per skill, so each test is short on a slow machine and a failure names the skill.
+describe.each(Object.entries(GENERATORS))('every problem %s can make', (_, generate) => {
+  const problems = problemsFrom(generate);
 
   it('can be answered correctly through the screen', () => {
     for (const problem of problems) {
@@ -83,9 +87,32 @@ describe('every problem a generator can make', () => {
     }
   });
 
+  it('shows the real answer on reveal', () => {
+    for (const problem of problems) {
+      const { container, unmount } = show(problem, { help: 'reveal' });
+      const where = JSON.stringify(problem);
+      expect(screen.getByTestId('hint').childElementCount, where).toBeGreaterThan(0);
+      if (problem.questionType === 'number-pad') {
+        expect(container.querySelector('.tap-answer')?.textContent, where).toBe(problem.answer);
+      } else if (problem.questionType === 'ten-frame') {
+        const dots = container.querySelectorAll('[data-dot="given"], .bg-leaf');
+        expect(container.querySelectorAll('button .bg-leaf').length, where).toBe(
+          Number(problem.answer),
+        );
+        expect(dots.length, where).toBeGreaterThanOrEqual(Number(problem.answer));
+      } else {
+        const marked = container.querySelector('.tap-answer');
+        expect(marked?.getAttribute('data-value'), where).toBe(problem.answer);
+      }
+      unmount();
+    }
+  });
+});
+
+describe('shape hints', () => {
   it('never gives the answer away in a shape hint', () => {
     let checked = 0;
-    for (const problem of problems) {
+    for (const problem of everyProblem()) {
       const o = problem.operands;
       if (o.kind !== 'shape-name' && o.kind !== 'shape-sides' && o.kind !== 'shares') continue;
       checked++;
@@ -106,27 +133,6 @@ describe('every problem a generator can make', () => {
       unmount();
     }
     expect(checked).toBeGreaterThan(0);
-  });
-
-  it('shows the real answer on reveal', () => {
-    for (const problem of problems) {
-      const { container, unmount } = show(problem, { help: 'reveal' });
-      const where = JSON.stringify(problem);
-      expect(screen.getByTestId('hint').childElementCount, where).toBeGreaterThan(0);
-      if (problem.questionType === 'number-pad') {
-        expect(container.querySelector('.tap-answer')?.textContent, where).toBe(problem.answer);
-      } else if (problem.questionType === 'ten-frame') {
-        const dots = container.querySelectorAll('[data-dot="given"], .bg-leaf');
-        expect(container.querySelectorAll('button .bg-leaf').length, where).toBe(
-          Number(problem.answer),
-        );
-        expect(dots.length, where).toBeGreaterThanOrEqual(Number(problem.answer));
-      } else {
-        const marked = container.querySelector('.tap-answer');
-        expect(marked?.getAttribute('data-value'), where).toBe(problem.answer);
-      }
-      unmount();
-    }
   });
 });
 
