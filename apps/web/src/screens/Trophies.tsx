@@ -1,10 +1,11 @@
 import { ALL_SKILLS } from '@mathapp/content';
 import { activeGrade, MILESTONES } from '@mathapp/engine';
 import { useState } from 'react';
-import { SKILL_ICON } from '../game/art';
+import { SkillIcon } from '../game/art';
 import { useGame } from '../game/GameProvider';
 import { BigButton } from '../ui/BigButton';
 import { MyMascot } from '../ui/MyMascot';
+import { Icon } from '../ui/icons';
 import { PlaceFrame } from '../ui/PlaceFrame';
 import { Plant } from '../visuals/Plant';
 
@@ -24,12 +25,21 @@ function Certificate({ days, onClose }: { days: number; onClose: () => void }) {
         <MyMascot mood="cheer" size={90} />
       </div>
       <div className="flex w-full max-w-md gap-3 print:hidden">
-        <BigButton label="print" className="flex-1" onClick={() => window.print()}>
-          🖨️
-        </BigButton>
-        <BigButton label="back" tone="quiet" className="flex-1" onClick={onClose}>
-          ➜
-        </BigButton>
+        <BigButton
+          label="Print"
+          aria-label="print"
+          icon="printer"
+          className="flex-1"
+          onClick={() => window.print()}
+        />
+        <BigButton
+          label="Back"
+          aria-label="back"
+          icon="back"
+          tone="quiet"
+          className="flex-1"
+          onClick={onClose}
+        />
       </div>
     </main>
   );
@@ -48,7 +58,11 @@ export function Trophies() {
     return <Certificate days={certificate} onClose={() => setCertificate(undefined)} />;
   }
   return (
-    <PlaceFrame title="Trophies">
+    <PlaceFrame
+      title="Trophies"
+      icon="trophy"
+      hint="Earn a badge by getting really good at a skill."
+    >
       <div className="mx-auto grid max-w-md grid-cols-3 gap-3" data-testid="trophies">
         {skills.map((skill) => {
           const earned = states[skill.id]?.masteredAt !== undefined;
@@ -65,14 +79,20 @@ export function Trophies() {
                     : { key: 'badge.waiting', params: { badge: skill.badgeName } },
                 )
               }
-              className={`tap aspect-square text-5xl ${earned ? 'tap-primary map-glow' : 'tap-used'}`}
+              className={`tap aspect-square flex-col gap-1 px-1 ${earned ? 'tap-primary map-glow' : 'tap-used'}`}
             >
-              <span className={earned ? '' : 'opacity-40 grayscale'}>{SKILL_ICON[skill.id]}</span>
+              <span className={earned ? '' : 'opacity-40 grayscale'}>
+                <SkillIcon id={skill.id} size={44} />
+              </span>
+              <span aria-hidden="true" className="text-[11px] leading-tight font-extrabold">
+                {earned ? skill.badgeName : skill.kidName}
+              </span>
             </button>
           );
         })}
       </div>
-      <div className="mx-auto mt-4 grid max-w-md grid-cols-3 gap-2" data-testid="milestones">
+      <h2 className="section-label mx-auto mt-5 mb-1.5 max-w-md">Days in a row</h2>
+      <div className="mx-auto grid max-w-md grid-cols-3 gap-2" data-testid="milestones">
         {MILESTONES.map((days) => {
           const reached = best >= days;
           return (
@@ -85,9 +105,9 @@ export function Trophies() {
                 actions.say({ key: 'certificate.days', params: { days } });
                 setCertificate(days);
               }}
-              className={`tap text-2xl font-extrabold ${reached ? 'tap-answer' : 'tap-used'}`}
+              className={`tap gap-1 text-2xl font-extrabold ${reached ? 'tap-answer' : 'tap-used'}`}
             >
-              🌱 {days}
+              <Icon name="sprout" size={30} /> {days}
             </button>
           );
         })}

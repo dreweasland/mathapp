@@ -179,9 +179,14 @@ export const STRINGS: Record<string, string> = {
   'feedback.tricky-solved': 'That one was tricky and you got it!',
 
   // Home and first run
-  'home.start': "Tap the big button to start today's quest.",
+  'home.start': "Tap Start for today's quest.",
   'home.resume': 'Tap the big button to keep going.',
   'home.done': "You finished today's quest! See you tomorrow!",
+  'tour.today':
+    "Hi! I'm Bo. Every day there's one quest. First a warm-up, then something new, then a bonus if you want.",
+  'tour.plant': 'Your plant grows a little every day you do your quest. The dots show this week.',
+  'tour.stuff': 'Down here are your map, your trophies, your animals, and dress-up for me!',
+  'tour.done': "That's it! Tap Start when you're ready.",
   'placement.intro': "Let's see what you know. Just try your best!",
   'placement.next': 'Thanks!',
   'placement.done': 'Thanks for showing me. Now we can start!',
@@ -193,13 +198,14 @@ export const STRINGS: Record<string, string> = {
   'worked.next': 'Now tap the arrow.',
 
   // Daily loop
-  'quest.warmup': "Let's warm up!",
-  'quest.skill': "Here's today's adventure.",
-  'quest.challenge': 'Want a challenge? You can say yes or skip it.',
+  'quest.warmup': "Step one, the warm-up. Let's wake up our brains!",
+  'quest.skill': "Step two. Now let's learn something!",
+  'quest.challenge':
+    "Today's quest is done, and your plant grew! Want a bonus round? Or you can be done.",
   'quest.challenge-goal':
-    'Your goal today is the quest and the challenge. Ready? You can still skip it.',
+    "Today's quest is done! Your goal is the bonus round too. Ready? You can still be done.",
   'quest.challenge-skip': 'No problem. Great work today!',
-  'quest.challenge-start': 'Here comes the challenge!',
+  'quest.challenge-start': 'Here comes the bonus round!',
   'quest.coins': 'You earned {coins} coins!',
   'quest.done': 'You did it! See you tomorrow!',
   'quest.rough-day': 'You kept going today. See you tomorrow!',
@@ -252,7 +258,7 @@ export const STRINGS: Record<string, string> = {
   // Grown-ups, goals and cheers
   'nav.grownups': 'This part is for grown-ups.',
   'who.pick': 'Who is playing? Tap your picture.',
-  'daily.met': "That's the quest and the challenge. You met your goal!",
+  'daily.met': "That's the quest and the bonus round. You met your goal!",
   'goal.quests': 'You did {done} of {target} quests. Then it is time for {reward}!',
   'goal.perfect-weeks': 'You did {done} of {target} perfect weeks. Then it is time for {reward}!',
   'goal.skills': 'You earned {done} of {target} badges. Then it is time for {reward}!',
@@ -261,7 +267,7 @@ export const STRINGS: Record<string, string> = {
   'cheer.from': 'A cheer from your grown-up!',
 
   // Free play
-  'nav.free': 'Free play! The lightning is a fast game. The rest is practice.',
+  'nav.free': 'Play more! The lightning ones are a fast game. The rest are practice.',
   'free.done': 'Nice practice! You earned {coins} coins.',
   'blitz.go': 'Go! Get as many as you can.',
   'blitz.done': 'You got {score}. Your best is {best}.',
@@ -271,9 +277,9 @@ export const STRINGS: Record<string, string> = {
   // Missions
   'mission.in-a-row': 'Get {target} in a row.',
   'mission.finish-quest': "Finish today's quest.",
-  'mission.finish-challenge': 'Finish the challenge.',
+  'mission.finish-challenge': 'Finish the bonus round.',
   'mission.fast-facts': 'Beat your fast time on {target} facts.',
-  'mission.all-done': 'All three missions! You get a bonus chest!',
+  'mission.all-done': 'All three little jobs! You get a bonus chest!',
 };
 
 export function render(key: string, params: Record<string, string | number> = {}): string {

@@ -44,9 +44,13 @@ export function Chest({ tier, size = 120 }: { tier: ChestTier; size?: number }) 
         strokeWidth="3"
       />
       {tier === 'perfect' && (
-        <text x="50" y="72" fontSize="20" textAnchor="middle">
-          ⭐
-        </text>
+        <path
+          d="M50 58 L53 65 L60.5 65.6 L54.8 70.4 L56.6 77.8 L50 73.8 L43.4 77.8 L45.2 70.4 L39.5 65.6 L47 65 Z"
+          fill="#ffb703"
+          stroke="#1d3557"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
       )}
     </svg>
   );

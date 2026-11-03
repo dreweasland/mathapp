@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 async function finishQuest(page: Page) {
   await page.getByRole('button', { name: 'start quest' }).click();
   await playUntilBreak(page);
-  await page.getByRole('button', { name: 'skip' }).click();
+  await page.getByRole('button', { name: "I'm done" }).click();
   await expect(page.getByTestId('celebrate')).toBeVisible();
 }
 
@@ -142,6 +142,9 @@ test('every new screen keeps tap targets and fits, on all five sizes', async ({ 
         const clipped: string[] = [];
         const scrolling = (el: Element) => el.closest('.overflow-y-auto');
         for (const button of document.querySelectorAll('main button')) {
+          // The grown-ups' note is for grown-ups, and hidden copies (landscape-only) don't count.
+          if (button.closest('[data-testid="grown-up-note"]') || !button.checkVisibility())
+            continue;
           const box = button.getBoundingClientRect();
           const name = button.getAttribute('aria-label') ?? '?';
           if (box.width < 63.5 || box.height < 63.5) small.push(name);

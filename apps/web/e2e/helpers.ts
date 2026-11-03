@@ -122,6 +122,13 @@ export async function setUpChild(page: Page, onSetup = false) {
     await page.waitForTimeout(60);
   }
   await expect(start).toBeVisible();
+  await skipTour(page);
+}
+
+/** A new child's first Home opens with a guided tour; most tests start after it. */
+export async function skipTour(page: Page) {
+  await page.getByRole('button', { name: 'Skip tour' }).click();
+  await expect(page.getByTestId('tour')).toHaveCount(0);
 }
 
 /** Changes one saved row, to set up a state that would take weeks to reach by playing. */
@@ -170,8 +177,8 @@ export async function waitForServiceWorker(page: Page) {
 
 /** Answers everything correctly until the quest offers the challenge or celebrates. */
 export async function playUntilBreak(page: Page) {
-  const go = page.getByRole('button', { name: 'go', exact: true });
-  const offer = page.getByRole('button', { name: 'skip' });
+  const go = page.getByRole('button', { name: "Let's go", exact: true });
+  const offer = page.getByRole('button', { name: "I'm done" });
   const celebrate = page.getByTestId('celebrate');
   const next = page.getByRole('button', { name: 'next' });
   const problemMain = page.locator('main[data-stage="answering"]');

@@ -17,7 +17,15 @@ import {
 } from '../visuals/Numbers';
 import { DAY_EMOJI, OBJECT_EMOJI, SCENE_EMOJI, STORY_EMOJI } from '../visuals/scenes';
 import { TenFrames } from '../visuals/TenFrame';
+import { Icon } from '../ui/icons';
 import { MINUS } from './format';
+
+/** A spoken question with no numbers to show: a few words, so the screen is never blank. */
+const Ask = ({ children }: { children: React.ReactNode }) => (
+  <p className="flex items-center justify-center gap-2 text-center text-3xl font-black">
+    {children}
+  </p>
+);
 
 const Big = ({ children }: { children: React.ReactNode }) => (
   <p className="text-center text-5xl leading-tight font-extrabold tabular-nums">{children}</p>
@@ -81,8 +89,8 @@ function WordPicture({ problem }: { problem: Problem }) {
       )}
       {taking && (
         <div className="text-center">
-          <span className="text-4xl font-extrabold" aria-hidden="true">
-            👋
+          <span className="flex justify-center" aria-hidden="true">
+            <Icon name="arrow" size={44} />
           </span>
           <p className="text-3xl font-extrabold">{b}</p>
         </div>
@@ -233,7 +241,7 @@ function laterKinds(problem: Problem, o: Operands) {
         </Row>
       ) : (
         // No bars here: seeing their size is the hint, and it comes after a first try.
-        <Big>⚖️</Big>
+        <Ask>Which is bigger?</Ask>
       );
     case 'fraction-equal':
       return (
@@ -305,14 +313,20 @@ function kindView(problem: Problem, o: Operands, hearOnly: boolean) {
       );
     case 'numeral':
       // The skill is matching a spoken number, so the digits only appear with no sound.
-      return hearOnly ? <Big>{o.value}</Big> : <Big>👂</Big>;
+      return hearOnly ? (
+        <Big>{o.value}</Big>
+      ) : (
+        <Ask>
+          <Icon name="speaker" size={48} /> Listen!
+        </Ask>
+      );
     case 'compare':
       return o.form === 'symbol' ? (
         <Big>
           {o.a} <Blank /> {o.b}
         </Big>
       ) : (
-        <Big>🐊</Big>
+        <Ask>Which is bigger?</Ask>
       );
     case 'place-value':
       if (o.ask === 'value') return <BaseTen tens={o.tens} ones={o.ones} />;
@@ -359,7 +373,7 @@ function kindView(problem: Problem, o: Operands, hearOnly: boolean) {
     case 'shares':
       return <p className="text-center text-4xl font-extrabold">{o.parts === 2 ? '½' : '¼'}</p>;
     case 'lengths':
-      return <Big>📏</Big>;
+      return <Ask>Look at how long they are</Ask>;
     default:
       return laterKinds(problem, o);
   }

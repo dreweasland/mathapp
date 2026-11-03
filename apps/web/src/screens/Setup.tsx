@@ -1,6 +1,8 @@
 import type { ChildProfile, DailyGoal } from '@mathapp/engine';
 import { useState, type ReactNode } from 'react';
 import { APP_NAME } from '../config';
+import { Avatar } from '../ui/Avatar';
+import { Icon } from '../ui/icons';
 import { Mascot } from '../ui/Mascot';
 
 export const AVATARS = ['🐻', '🦊', '🐰', '🐼', '🐯', '🐸'];
@@ -90,9 +92,9 @@ export function Setup({
             aria-label={`avatar ${a}`}
             aria-pressed={a === avatar}
             onClick={() => setAvatar(a)}
-            className={`tap min-h-20 text-5xl ${a === avatar ? 'tap-primary' : ''}`}
+            className={`tap min-h-20 ${a === avatar ? 'tap-primary' : ''}`}
           >
-            {a}
+            <Avatar value={a} size={52} />
           </button>
         ))}
       </div>
@@ -127,9 +129,10 @@ export function Setup({
         aria-label="done"
         disabled={name.trim() === ''}
         onClick={() => onDone(name.trim(), avatar, goal, grade)}
-        className="tap tap-primary min-h-20 w-full max-w-sm text-4xl font-extrabold"
+        className="tap tap-primary min-h-20 w-full max-w-sm gap-2 text-2xl font-black"
       >
-        ✓
+        <Icon name="check" size={28} />
+        Done
       </button>
       <button type="button" className="p-link" onClick={() => setRestoring(true)}>
         Moving from another device? Restore a backup

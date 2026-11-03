@@ -19,7 +19,9 @@ apps/web/                  PWA shell
   src/game/                store.ts: the one game store, built from injected deps so tests need no browser
   src/audio/               speech.ts (always by string key), sfx.ts
   src/question/            ProblemView = Prompt + Hint + Answers; one renderer for all 6 question types
-  src/visuals/ src/ui/     clock, ten-frame, shapes, base-ten, Numbers (coins, arrays, fractions, rulers); mascot, big button
+  src/visuals/ src/ui/     clock, ten-frame, shapes, base-ten, Numbers (coins, arrays, fractions, rulers); mascot, big button,
+                           icons.tsx (the drawn icon set), Avatar.tsx, BearSays.tsx (the bear's speech bubble)
+  src/game/art.tsx         a drawn icon per skill, for the map, trophies and free play
   src/screens/             Setup, Who, Placement, Home, Cheer, Quest, Celebrate, ChestReveal, Map, Trophies, Stickers, Shop, Free, Blitz
   src/parent/              grown-ups' area, lazy-loaded: PinGate, ParentApp, pages/, reportDoc (teacher report)
   src/gallery.tsx          dev-only page of any problem, for layout tests; never in the build
@@ -107,6 +109,12 @@ Agreed with the parent before Phase 0.
 - **Fact Blitz:** one try per fact, so a miss moves on with no "not yet" sound. The best is per skill and against the child's own score only. The problem isn't read aloud, which would use up the minute.
 - **Reminders:** a calendar file with a daily alert. A PWA with no server can't notify, so the "streak at risk" nudge waits for Phase 6. Math time is set in the dashboard rather than Setup, which is already long.
 - **Hints help without solving:** counting hints stop short of the total. `ProblemView.test.tsx` enforces this.
+- **Words and drawn icons (redesign, Nov 2026):** the first build read "icons over words" as "no words", and a grown-up couldn't tell what anything was. Every control now has a drawn icon plus a short word, and the bear's speech bubble shows what it just said. Everything is still spoken, so a non-reader can play alone. App controls never use emoji; `icons.tsx` holds the set. Collectible animals, dress-up items and word-problem pictures are still emoji, framed in drawn cards, until real art exists.
+- **Home has one job:** a "Today's quest" card with three named steps (Warm-up, Learn, Bonus) and one Start button. The plant, the week, little jobs (missions) and goals sit below; Map, Trophies, Animals and Dress up are pinned at the bottom. The middle scrolls on small phones, but Start and the bottom row never leave the screen.
+- **First-visit tour:** Bo walks through Home in three spoken steps the first time, then never again on its own (`touredAt`). The Help button runs it again.
+- **The challenge is called the bonus round** everywhere the child sees or hears it. The engine and dashboard still say challenge.
+- **Grown-up notes:** a dark bar above Home with an OK that hides it until the next opening. A failed save can't be dismissed.
+- **One font:** Nunito, bundled (Latin only, 39 KB), so it looks the same on every device and works offline.
 - **Performance:** only Home and the quest load up front. Everything else is lazy and precached, so offline still works.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
 

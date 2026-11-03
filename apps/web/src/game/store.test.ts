@@ -1039,3 +1039,58 @@ describe('free play', () => {
     expect(sessions.some((s) => s.type === 'free')).toBe(true);
   });
 });
+
+describe('telling the child what is happening', () => {
+  it('writes out what the bear says, but not single digits', async () => {
+    const env = setup();
+    await placed(env);
+    env.game.actions.sayHome();
+    env.flushTimers();
+    const line = env.state().caption;
+    expect(line?.key).toMatch(/^(home|placement)\./);
+    env.game.actions.sayDigit('7');
+    expect(env.state().caption).toEqual(line);
+  });
+
+  it('tours Home once, in three steps, and remembers it was seen', async () => {
+    const env = setup();
+    await placed(env);
+    const { actions } = env.game;
+    expect(env.state().child?.touredAt).toBeUndefined();
+    actions.startTour();
+    expect(env.state().tour).toBe(0);
+    expect(env.said.at(-1)?.key).toBe('tour.today');
+    actions.nextTour();
+    actions.nextTour();
+    expect(env.said.at(-1)?.key).toBe('tour.stuff');
+    actions.nextTour();
+    expect(env.state().tour).toBeUndefined();
+    expect(env.said.at(-1)?.key).toBe('tour.done');
+    await actions.flushed();
+    const saved = await env.database.children.get(env.state().child?.id ?? '');
+    expect(saved?.touredAt).toBeDefined();
+  });
+
+  it('can skip the tour, and Help runs it again without touching anything else', async () => {
+    const env = setup();
+    await placed(env);
+    const { actions } = env.game;
+    actions.startTour();
+    actions.endTour();
+    const toured = env.state().child?.touredAt;
+    expect(toured).toBeDefined();
+    const coins = env.state().progress?.wallet.coins;
+    actions.startTour();
+    actions.endTour();
+    expect(env.state().child?.touredAt).toBe(toured);
+    expect(env.state().progress?.wallet.coins).toBe(coins);
+  });
+
+  it('puts a grown-up note away for this visit only', async () => {
+    const env = setup();
+    await placed(env);
+    expect(env.state().noteDismissed).toBe(false);
+    env.game.actions.dismissNote();
+    expect(env.state().noteDismissed).toBe(true);
+  });
+});

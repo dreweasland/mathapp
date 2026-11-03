@@ -12,13 +12,18 @@ export function Stickers() {
   const lastShown = active ? COLLECTIBLE_SETS.indexOf(active) : COLLECTIBLE_SETS.length - 1;
   const shown = COLLECTIBLE_SETS.slice(0, lastShown + 1).reverse();
   return (
-    <PlaceFrame title="Animals">
+    <PlaceFrame
+      title="Animals"
+      icon="paw"
+      hint="Find animals in your chests. Grey ones are still to find."
+    >
       <div className="mx-auto flex max-w-md flex-col gap-4" data-testid="stickers">
         {shown.map((set) => (
           <section key={set.id} data-set={set.id}>
-            <p aria-hidden="true" className="text-center text-3xl">
-              {artFor(set.decoration)?.emoji}
-            </p>
+            <h2 className="section-label mb-1.5">
+              {artFor(set.decoration)?.name ?? set.id} ·{' '}
+              {set.items.filter((i) => items.includes(i)).length} of {set.items.length}
+            </h2>
             <div className="grid grid-cols-4 gap-2">
               {set.items.map((id) => {
                 const owned = items.includes(id);

@@ -36,6 +36,8 @@ export interface ChildProfile {
   questsCompleted: number;
   /** Set when the first-run placement warm-up ends. */
   placedAt?: number;
+  /** Set when the first-visit tour of Home ends, so it only runs once on its own. */
+  touredAt?: number;
   createdAt: number;
   updatedAt: number;
 }

@@ -33,7 +33,7 @@ test('a full quest works offline, reaches the celebration, and stays done', asyn
   await playUntilBreak(page);
 
   // Warm-up and today's skill count for the day, even before the optional challenge.
-  await page.getByRole('button', { name: 'yes' }).click();
+  await page.getByRole('button', { name: 'Try it' }).click();
   await playUntilBreak(page);
   await expect(page.getByTestId('celebrate')).toBeVisible();
   await expect(page.getByTestId('streak')).toContainText('1');
@@ -62,7 +62,7 @@ test('a full quest works offline, reaches the celebration, and stays done', asyn
   await page.reload();
   await page.getByRole('button', { name: 'start quest' }).click();
   await playUntilBreak(page);
-  await page.getByRole('button', { name: 'skip' }).click();
+  await page.getByRole('button', { name: "I'm done" }).click();
   await expect(page.getByTestId('celebrate')).toBeVisible();
   await expect(page.getByTestId('streak')).toContainText('2');
 });
@@ -70,7 +70,7 @@ test('a full quest works offline, reaches the celebration, and stays done', asyn
 test('wrong answers get a hint, then the answer, and never a dead end', async ({ page }) => {
   await setUpChild(page);
   await page.getByRole('button', { name: 'start quest' }).click();
-  await page.getByRole('button', { name: 'go', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go", exact: true }).click();
 
   // A two-choice problem can't be missed twice, so move on to one that can.
   let problem = await problemOnScreen(page);
@@ -100,7 +100,7 @@ test('wrong answers get a hint, then the answer, and never a dead end', async ({
 test('correct feedback appears within 100ms of the tap', async ({ page }) => {
   await setUpChild(page);
   await page.getByRole('button', { name: 'start quest' }).click();
-  await page.getByRole('button', { name: 'go', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go", exact: true }).click();
   await page.evaluate(() => {
     const state = window as unknown as { __tap?: number; __shown?: number };
     document.addEventListener('click', () => (state.__tap = performance.now()), true);
@@ -123,7 +123,7 @@ test('correct feedback appears within 100ms of the tap', async ({ page }) => {
 test('closing the app mid-quest resumes the same quest at the same problem', async ({ page }) => {
   await setUpChild(page);
   await page.getByRole('button', { name: 'start quest' }).click();
-  await page.getByRole('button', { name: 'go', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go", exact: true }).click();
   const problem = await problemOnScreen(page);
   await answer(page, problem, problem.answer);
   await expect(page.locator('main[data-item="1"]')).toBeVisible();
@@ -140,7 +140,7 @@ test('closing the app mid-quest resumes the same quest at the same problem', asy
 test('leaving for home mid-quest costs nothing', async ({ page }) => {
   await setUpChild(page);
   await page.getByRole('button', { name: 'start quest' }).click();
-  await page.getByRole('button', { name: 'go', exact: true }).click();
+  await page.getByRole('button', { name: "Let's go", exact: true }).click();
   await expect(page.locator('main[data-stage]')).toBeVisible();
   await page.getByRole('button', { name: 'home' }).click();
   await page.getByRole('button', { name: 'keep going' }).click();

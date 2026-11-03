@@ -45,7 +45,7 @@ const leave = (page: Page) => page.getByRole('button', { name: 'Done' }).click()
 async function finishQuest(page: Page) {
   await page.getByRole('button', { name: 'start quest' }).click();
   await playUntilBreak(page);
-  const skip = page.getByRole('button', { name: 'skip' });
+  const skip = page.getByRole('button', { name: "I'm done" });
   if (await skip.isVisible()) await skip.click();
   await expect(page.getByTestId('celebrate')).toBeVisible();
   await openChests(page);
@@ -157,12 +157,12 @@ test('a cheer plays before the next quest, once', async ({ page }) => {
   await expect(page.getByTestId('cheer')).toContainText('🚀');
   await expect.poll(() => said(page)).toContainEqual('A cheer from your grown-up!');
   await page.getByRole('button', { name: 'next' }).click();
-  await expect(page.getByRole('button', { name: 'go', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: "Let's go", exact: true })).toBeVisible();
 
   await page.reload();
   await page.getByRole('button', { name: 'keep going' }).click();
   await expect(page.getByTestId('cheer')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'go', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: "Let's go", exact: true })).toBeVisible();
 });
 
 test('a recorded cheer is sent and played from the start tap', async ({ page }) => {
@@ -409,9 +409,14 @@ for (const viewport of HOME_VIEWS) {
       await page.getByRole('button', { name: '‹ Back' }).click();
       await leave(page);
       await patchRow(page, 'children', { questsCompleted: 7 });
+      // Home's middle scrolls; the note, Start and the bottom buttons must always be in view.
       const offScreen = () =>
         page.evaluate(() =>
           [...document.querySelectorAll('main button, main p')]
+            .filter((el) => el.checkVisibility())
+            .filter(
+              (el) => !el.closest('.overflow-y-auto') || el.matches('[aria-label="start quest"]'),
+            )
             .filter((el) => {
               const box = el.getBoundingClientRect();
               return (

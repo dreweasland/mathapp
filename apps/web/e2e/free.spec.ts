@@ -7,6 +7,7 @@ import {
   problemOnScreen,
   setUpChild,
   stubSpeech,
+  skipTour,
 } from './helpers';
 
 const VIEWS = [
@@ -24,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 async function finishQuest(page: Page) {
   await page.getByRole('button', { name: 'start quest' }).click();
   await playUntilBreak(page);
-  const skip = page.getByRole('button', { name: 'skip' });
+  const skip = page.getByRole('button', { name: "I'm done" });
   if (await skip.isVisible()) await skip.click();
   await expect(page.getByTestId('celebrate')).toBeVisible();
   await openChests(page);
@@ -138,6 +139,7 @@ async function startAtGrade2(page: Page) {
   await page.getByRole('button', { name: 'Grade 2' }).click();
   await page.getByRole('button', { name: 'done' }).click();
   await expect(page.getByRole('button', { name: 'start quest' })).toBeVisible();
+  await skipTour(page);
 }
 
 test('Fact Blitz fills a bar with no countdown, and keeps a personal best', async ({ page }) => {
@@ -156,7 +158,7 @@ test('Fact Blitz fills a bar with no countdown, and keeps a personal best', asyn
 
   await page.clock.fastForward(61_000);
   await expect(page.getByTestId('free-done')).toBeVisible();
-  await expect(page.getByTestId('blitz-score')).toContainText('⭐ 2');
+  await expect(page.getByTestId('blitz-score')).toContainText('New best!');
   await page.getByRole('button', { name: 'home' }).click();
 
   // A lower score leaves the best where it was.

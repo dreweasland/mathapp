@@ -16,6 +16,7 @@ import {
 import { CountedSides, Shape, Shares } from '../visuals/Shape';
 import { LengthBar, lengthObjects } from '../visuals/Lengths';
 import { TenFrames } from '../visuals/TenFrame';
+import { Icon } from '../ui/icons';
 
 const num = (value: number | string | undefined, fallback = 0) =>
   typeof value === 'number' ? value : fallback;
@@ -107,7 +108,7 @@ function Alligator({ a, b, showSign }: { a: number; b: number; showSign: boolean
         <p className="text-2xl font-extrabold">{a}</p>
       </div>
       <span className="text-3xl font-extrabold" aria-hidden="true">
-        {showSign ? sign : '🐊'}
+        {showSign ? sign : '?'}
       </span>
       <div className="text-center">
         <BaseTen tens={Math.floor(b / 10)} ones={b % 10} />
@@ -281,7 +282,12 @@ export function Hint({ problem, reveal }: { problem: Problem; reveal: boolean })
       return <Steps problem={problem} />;
     case 'clock': {
       if (o.kind === 'am-pm') {
-        return <p className="text-2xl font-extrabold">☀️ a.m. · 🌙 p.m.</p>;
+        return (
+          <p className="flex items-center gap-3 text-2xl font-extrabold">
+            <Icon name="sun" size={36} /> a.m. = morning
+            <Icon name="moon" size={36} /> p.m. = afternoon and night
+          </p>
+        );
       }
       if (o.kind === 'elapsed') {
         const end = { hour: num(params?.['hour']), minute: num(params?.['minute']) };

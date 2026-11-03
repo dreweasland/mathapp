@@ -1,5 +1,6 @@
 import { useGame } from '../game/GameProvider';
 import { BigButton } from '../ui/BigButton';
+import { Icon } from '../ui/icons';
 import { MyMascot } from '../ui/MyMascot';
 
 /** A grown-up's message, before the next quest. Tap the picture to hear it again. */
@@ -12,7 +13,7 @@ export function Cheer() {
       data-testid="cheer"
       data-kind={cheer?.audio ? 'voice' : 'emoji'}
     >
-      <h1 className="sr-only">A cheer from your grown-up</h1>
+      <h1 className="text-3xl font-black">A message for you!</h1>
       <MyMascot mood="cheer" size={120} />
       <button
         type="button"
@@ -20,11 +21,23 @@ export function Cheer() {
         className="tap min-h-40 w-full max-w-md text-8xl"
         onClick={actions.playCheer}
       >
-        <span className="pop">{cheer?.emoji ?? '💬'}</span>
+        {cheer?.emoji ? (
+          <span className="pop">{cheer.emoji}</span>
+        ) : (
+          <span className="pop flex flex-col items-center gap-1 text-lg font-extrabold">
+            <Icon name="speaker" size={72} />
+            Hear it again
+          </span>
+        )}
       </button>
-      <BigButton label="next" className="w-full max-w-md" onClick={actions.finishCheer}>
-        ➜
-      </BigButton>
+      <BigButton
+        label="Next"
+        aria-label="next"
+        icon="arrow"
+        iconAfter
+        className="w-full max-w-md"
+        onClick={actions.finishCheer}
+      />
     </main>
   );
 }

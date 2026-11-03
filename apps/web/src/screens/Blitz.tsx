@@ -1,7 +1,8 @@
 import { BLITZ_MS } from '@mathapp/engine';
 import { useGame } from '../game/GameProvider';
 import { ProblemView } from '../question/ProblemView';
-import { BigButton } from '../ui/BigButton';
+import { IconButton } from '../ui/BigButton';
+import { Icon } from '../ui/icons';
 
 /** A bar that fills, with no numbers and no ticking: a game against nothing but yourself. */
 export function Blitz() {
@@ -12,9 +13,8 @@ export function Blitz() {
     <main className="screen" data-testid="blitz">
       <h1 className="sr-only">Fact Blitz</h1>
       <header className="flex items-center gap-2">
-        <BigButton label="home" tone="quiet" className="!px-3" onClick={actions.goHome}>
-          🏠
-        </BigButton>
+        <IconButton icon="home" label="Home" aria-label="home" onClick={actions.goHome} />
+        <Icon name="bolt" size={30} />
         <div
           className="h-6 flex-1 overflow-hidden rounded-full border-3 border-ink bg-white"
           role="img"
@@ -26,8 +26,11 @@ export function Blitz() {
             style={{ animationDuration: `${BLITZ_MS}ms` }}
           />
         </div>
-        <span className="text-3xl font-extrabold tabular-nums" data-testid="blitz-live">
-          ✓ {blitz.score}
+        <span
+          className="flex items-center gap-1 text-3xl font-extrabold tabular-nums"
+          data-testid="blitz-live"
+        >
+          <Icon name="check" size={26} /> {blitz.score}
         </span>
       </header>
       <ProblemView

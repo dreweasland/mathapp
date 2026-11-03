@@ -81,5 +81,5 @@ Playwright only approximates Safari, so these need the real device:
 10. In Goals & cheers, record a voice message. Allow the microphone, listen back, and send it. Start the next quest: it should play right away, with the ring/silent switch both ways.
 11. In Settings, set a math time and tap Add to calendar. It should offer to add a daily event with an alert. If the file won't open, try sending it to yourself by email or Messages.
 12. In Settings, try the Voice list. It should show several voices and speak a sample.
-13. After a quest, play Fact Blitz. Watch for lag between tapping and the next problem.
+13. On a new child's first Home, the tour should step through Today's quest, the plant and the bottom buttons, with Bo's words in the bubble matching what he says. After a quest, play Fact Blitz. Watch for lag between tapping and the next problem.
 14. In Backup, tap Save backup and save to Files. Delete the app, reinstall it, set it up, and restore the file. All progress and the voice message should return.

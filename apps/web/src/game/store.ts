@@ -174,10 +174,19 @@ export interface GameState {
   /** A save failed, so a grown-up should know progress may not be stored. */
   saveFailed: boolean;
   placement?: { state: PlacementState; problem: Problem; asked: number };
+  /** The bear's last line, shown in its speech bubble so nothing is only heard. */
+  caption?: Speech;
+  /** Step of the first-visit tour of Home, while it runs. */
+  tour?: number;
+  /** Grown-up notes show once per opening, then wait in the dashboard. */
+  noteDismissed: boolean;
 }
 
+/** The first visit to Home walks through it, one part at a time. */
+export const TOUR_STEPS = ['today', 'plant', 'stuff'] as const;
+
 export function createGame(deps: GameDeps) {
-  const { speaker, play, clip, now, after, progress: repo, children, family } = deps;
+  const { speaker: voice, play, clip, now, after, progress: repo, children, family } = deps;
   const store = createStore<GameState>(() => ({
     screen: 'loading',
     everyone: [],
@@ -189,9 +198,24 @@ export function createGame(deps: GameDeps) {
     missions: [],
     newBadges: [],
     saveFailed: false,
+    noteDismissed: false,
   }));
   const get = store.getState;
   const set = store.setState;
+
+  /** Everything the bear says also appears in its bubble. Single digits are just key presses. */
+  const speaker: Speaker = {
+    get available() {
+      return voice.available;
+    },
+    unlock: () => voice.unlock(),
+    stop: () => voice.stop(),
+    setVoice: (name) => voice.setVoice(name),
+    say(line, onDone) {
+      if (line.key !== 'digit') set({ caption: line });
+      voice.say(line, onDone);
+    },
+  };
 
   /** Saves run in order, off the tap path, so feedback never waits on storage. */
   let writes: Promise<void> = Promise.resolve();
@@ -718,6 +742,43 @@ export function createGame(deps: GameDeps) {
       const key = todayDone ? 'home.done' : run ? 'home.resume' : 'home.start';
       sayInOrder([...(homeNote ? [homeNote] : []), { key }]);
       set({ homeNote: undefined, mood: 'idle' });
+    },
+
+    /** Runs once per child, on their first Home; Help runs it again. */
+    startTour() {
+      const { homeNote } = get();
+      set({ tour: 0, homeNote: undefined, mood: 'idle' });
+      sayInOrder([...(homeNote ? [homeNote] : []), { key: `tour.${TOUR_STEPS[0]}` }]);
+    },
+
+    nextTour() {
+      const step = get().tour;
+      if (step === undefined) return;
+      play('tap');
+      const next = step + 1;
+      if (next >= TOUR_STEPS.length) {
+        actions.endTour();
+        return;
+      }
+      set({ tour: next });
+      speaker.say({ key: `tour.${TOUR_STEPS[next]}` });
+    },
+
+    endTour() {
+      const child = get().child;
+      if (get().tour === undefined || !child) return;
+      set({ tour: undefined });
+      if (child.touredAt === undefined) {
+        const toured: ChildProfile = { ...child, touredAt: now(), updatedAt: now() };
+        set({ child: toured });
+        save({ child: toured });
+      }
+      speaker.say({ key: 'tour.done' });
+    },
+
+    dismissNote() {
+      play('tap');
+      set({ noteDismissed: true });
     },
 
     sayPlacementIntro() {

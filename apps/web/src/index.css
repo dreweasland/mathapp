@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/* One rounded font on every device, bundled so it works offline. Latin only keeps it small. */
+@font-face {
+  font-family: 'Nunito';
+  src: url('@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2') format('woff2');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
 html,
 body,
 #root {
@@ -10,7 +19,7 @@ body {
   margin: 0;
   background: #fff8e7;
   color: #1d3557;
-  font-family: ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  font-family: 'Nunito', ui-rounded, system-ui, sans-serif;
   /* The app must feel like an app: no text selection or double-tap zoom while tapping. */
   -webkit-user-select: none;
   user-select: none;
@@ -24,6 +33,10 @@ body {
   --color-leaf: #8fe3a8;
   --color-mist: #dff3fa;
   --color-cream: #fff8e7;
+  /* Secondary text: 6:1 on white and on cream. */
+  --color-ink-soft: #4a5d78;
+  --color-line: #c5cdd8;
+  --color-coral: #e76f51;
 }
 
 html,
@@ -88,6 +101,92 @@ button {
   background: var(--color-leaf);
 }
 
+/* A white panel: the one kind of box the child sees, so boxes always mean "a thing". */
+.card {
+  border: 3px solid var(--color-ink);
+  border-radius: 1.5rem;
+  background: white;
+  box-shadow: 0 5px 0 var(--color-ink);
+  padding: 0.75rem 0.875rem;
+}
+.section-label {
+  font-size: 0.8125rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+/* The bear's words. The tail points back at the bear. */
+.bubble {
+  position: relative;
+  margin: 0;
+  border: 3px solid var(--color-ink);
+  border-radius: 1.25rem;
+  background: white;
+  padding: 0.5rem 0.875rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: left;
+}
+.bubble-left::after {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: calc(50% - 9px);
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-left: 3px solid var(--color-ink);
+  border-bottom: 3px solid var(--color-ink);
+  transform: rotate(45deg);
+}
+
+/* The bear's line on a problem screen needs room the hints need more on short phones. */
+@media (max-height: 699px) {
+  .quest-caption {
+    display: none;
+  }
+}
+
+/* The first-visit tour dims everything except the part being explained. */
+.tour-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(29 53 87 / 0.62);
+}
+.tour-lit {
+  position: relative;
+  z-index: 30;
+  border-radius: 1.5rem;
+  box-shadow: 0 0 0 6px var(--color-sun);
+}
+
+/* Steps of the day: done, now, and still to come. */
+.step-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 3px solid var(--color-ink);
+  border-radius: 9999px;
+  background: white;
+}
+.step-dot[data-state='now'] {
+  background: #fff3c4;
+  box-shadow: 0 0 0 4px var(--color-sun);
+}
+.step-dot[data-state='done'] {
+  background: var(--color-leaf);
+}
+
+.home-nav-inline {
+  display: none;
+}
+
 .home-body {
   display: flex;
   flex: 1;
@@ -105,7 +204,18 @@ button {
   }
   .home-body {
     flex-direction: row;
-    gap: 1.5rem;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  /* A phone on its side is too short for the bear and the Start button; the bear still speaks.
+     The place buttons move into the right column, so Start stays on screen. */
+  .home-bear,
+  .home-nav-pinned,
+  .step-sub {
+    display: none;
+  }
+  .home-nav-inline {
+    display: block;
   }
 }
 
