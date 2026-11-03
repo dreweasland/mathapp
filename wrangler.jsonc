@@ -1,0 +1,18 @@
+// Cloudflare Worker that serves the built PWA as static files. There is no Worker script:
+// every request is a static asset, so nothing runs on the server and no child data leaves the device.
+// Cloudflare Workers Builds runs `npm run build`, then `npx wrangler deploy` from the repo root.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Must match the Worker's name in the Cloudflare dashboard.
+  "name": "mathapp",
+  "compatibility_date": "2026-10-26",
+  "assets": {
+    "directory": "./apps/web/dist",
+    // The app has one page; any other path gets it too, as the service worker does offline.
+    "not_found_handling": "single-page-application",
+  },
+  "workers_dev": true,
+  // Each preview URL is its own origin with its own empty storage, so they'd only confuse.
+  "preview_urls": false,
+  "observability": { "enabled": false },
+}

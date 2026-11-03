@@ -49,7 +49,11 @@ npm run demo         print a Daily Quest (see README for options)
 npm run lint         ESLint + Prettier
 npm run typecheck    tsc across all workspaces
 npm run dev          dev server
+npm run serve        build, then serve it as Cloudflare will (wrangler dev)
+npm run deploy       build and deploy to Cloudflare (normally Workers Builds does this on push to main)
 ```
+
+Hosting: a Cloudflare Worker with static assets only (`wrangler.jsonc`, headers in `apps/web/public/_headers`). No Worker script, no analytics. Deploys come from Cloudflare Workers Builds, not GitHub Actions; CI only tests.
 
 ## Decisions that override the brief
 

@@ -49,11 +49,27 @@ npm run typecheck
 
 `packages/engine/src/audit.test.ts` recomputes 2,500 answers for each of the 38 skills with solver code that shares nothing with the generators.
 
+## Deploying to Cloudflare
+
+The app is served as static files by a Cloudflare Worker with no server code (`wrangler.jsonc`). Cloudflare's own Git integration (Workers Builds) builds and deploys it; GitHub Actions only runs the tests.
+
+One-time setup in the Cloudflare dashboard:
+
+1. Push this repo to GitHub.
+2. Go to Workers & Pages, then Create, then Import a repository, and pick the repo.
+3. Set the project name to `mathapp`, the name in `wrangler.jsonc`. If you pick another, change it there too.
+4. Leave the root directory empty, set the build command to `npm run build`, and leave the deploy command as `npx wrangler deploy`.
+5. Set the production branch to `main`. Node comes from `.nvmrc`.
+
+Every push to `main` then deploys to `https://mathapp.<your-subdomain>.workers.dev`. To deploy from your own machine instead, run `npx wrangler login` once, then `npm run deploy`. To try the deployed setup locally, run `npm run serve`.
+
+**Pick the final address before your child starts.** The phone keeps all progress per web address, so moving to a new domain later means saving a backup on the old address and restoring it on the new one.
+
 ## Checking on a real iPhone
 
 Playwright only approximates Safari, so these need the real device:
 
-1. Run `npm run build`, then serve `apps/web/dist` over HTTPS. Service workers need HTTPS, so a plain local IP address won't work.
+1. Deploy (see above) and open the `workers.dev` address in Safari. Service workers need HTTPS, so a plain local IP address won't work.
 2. In Safari, tap Share, then Add to Home Screen.
 3. Open the app from the Home Screen. It should have no browser bars.
 4. Turn on Airplane Mode, force-quit the app, and reopen it. It should still load.
