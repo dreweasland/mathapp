@@ -2,7 +2,7 @@ import type { Operands, Problem } from '@mathapp/engine';
 import { formatTime } from '@mathapp/engine';
 import { Clock } from '../visuals/Clock';
 import { BaseTen } from '../visuals/BaseTen';
-import { Shape } from '../visuals/Shape';
+import { ColouredSides, Shape } from '../visuals/Shape';
 import {
   AreaGrid,
   Blocks,
@@ -367,7 +367,7 @@ function kindView(problem: Problem, o: Operands, hearOnly: boolean) {
     case 'shape-sides':
       return (
         <div className="flex justify-center">
-          <Shape shape={o.shape} size={130} />
+          <Shape shape={o.shape} size={130} className="prompt-shape" />
         </div>
       );
     case 'shares':
@@ -380,11 +380,27 @@ function kindView(problem: Problem, o: Operands, hearOnly: boolean) {
 }
 
 /** What's on screen for the problem itself. The speech carries the rest. */
-export function Prompt({ problem, audioOk }: { problem: Problem; audioOk: boolean }) {
-  const isStory = problem.operands.kind === 'arith' && problem.picture !== undefined;
+export function Prompt({
+  problem,
+  audioOk,
+  counting = false,
+}: {
+  problem: Problem;
+  audioOk: boolean;
+  /** The hint for "how many sides": the shape itself gets a colour per side to count. */
+  counting?: boolean;
+}) {
+  const o = problem.operands;
+  const isStory = o.kind === 'arith' && problem.picture !== undefined;
   return (
     <div className="flex flex-col items-center gap-2" data-testid="prompt">
-      {isStory ? <WordPicture problem={problem} /> : kindView(problem, problem.operands, !audioOk)}
+      {counting && o.kind === 'shape-sides' ? (
+        <ColouredSides shape={o.shape} size={130} className="prompt-shape" />
+      ) : isStory ? (
+        <WordPicture problem={problem} />
+      ) : (
+        kindView(problem, o, !audioOk)
+      )}
     </div>
   );
 }

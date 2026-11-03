@@ -1,3 +1,4 @@
+import { render } from '@mathapp/content';
 import type { Problem } from '@mathapp/engine';
 import { BaseTen } from '../visuals/BaseTen';
 import { Clock } from '../visuals/Clock';
@@ -13,7 +14,7 @@ import {
   RunningTotal,
   Ruler,
 } from '../visuals/Numbers';
-import { CountedSides, Shape, Shares } from '../visuals/Shape';
+import { CountedSides, Shape, Shares, SideSticks } from '../visuals/Shape';
 import { LengthBar, lengthObjects } from '../visuals/Lengths';
 import { TenFrames } from '../visuals/TenFrame';
 import { Icon } from '../ui/icons';
@@ -314,9 +315,43 @@ export function Hint({ problem, reveal }: { problem: Problem; reveal: boolean })
       );
     }
     case 'shape': {
-      if (o.kind === 'shape-sides') return <CountedSides shape={o.shape} size={110} />;
-      if (o.kind === 'shape-name') return <Shape shape={o.shape} size={90} />;
-      if (o.kind === 'shares') return <Shares shape={o.shape} parts={o.parts} equal size={90} />;
+      // Before the reveal, each hint helps the child look without drawing the answer for them.
+      if (o.kind === 'shape-sides') {
+        // The question's own shape takes the colours, so this is only the words.
+        return reveal ? (
+          <CountedSides shape={o.shape} size={110} />
+        ) : (
+          <p className="text-center text-lg leading-tight font-extrabold">
+            {render('hint.count-sides')}
+          </p>
+        );
+      }
+      if (o.kind === 'shape-name') {
+        return reveal ? (
+          <Shape shape={o.shape} size={90} />
+        ) : (
+          <div className="flex flex-col items-center gap-1">
+            <SideSticks shape={o.shape} size={140} />
+            <p className="text-center text-lg leading-tight font-extrabold">
+              {render(`hint.shape.${o.shape}`)}
+            </p>
+          </div>
+        );
+      }
+      if (o.kind === 'shares') {
+        // Shown on a different shape from the choices, so it can't be matched by eye.
+        const other = o.shape === 'circle' ? 'rectangle' : 'circle';
+        return reveal ? (
+          <Shares shape={o.shape} parts={o.parts} equal size={90} />
+        ) : (
+          <div className="flex items-center gap-3">
+            <Shares shape={other} parts={o.parts} equal size={80} />
+            <p className="max-w-40 text-left text-lg leading-tight font-extrabold">
+              {render('hint.equal-parts')}
+            </p>
+          </div>
+        );
+      }
       return null;
     }
     case 'bars':

@@ -94,6 +94,14 @@ async function problems(page: Page) {
     for (const bar of document.querySelectorAll('[data-testid="fraction-bar"]')) {
       if (bar.getBoundingClientRect().width < 150) tooSmall.push('fraction bar collapsed');
     }
+    // A shape to count must be whole on screen, not half under the number pad.
+    for (const shape of document.querySelectorAll('.prompt-shape')) {
+      const box = shape.getBoundingClientRect();
+      const area = shape.closest('.overflow-y-auto')?.getBoundingClientRect();
+      if (area && (box.bottom > area.bottom + 0.5 || box.top < area.top - 0.5)) {
+        offScreen.push('shape cut off');
+      }
+    }
     return {
       tooSmall,
       offScreen,

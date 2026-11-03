@@ -403,6 +403,15 @@ export function createGame(deps: GameDeps) {
     sayInOrder(lines);
   }
 
+  /** Hints that are words as well as a picture get read out, for a child who can't read them. */
+  function hintLine(problem: Problem): Speech | undefined {
+    const o = problem.operands;
+    if (o.kind === 'shape-name') return { key: `hint.shape.${o.shape}` };
+    if (o.kind === 'shape-sides') return { key: 'hint.count-sides' };
+    if (o.kind === 'shares') return { key: 'hint.equal-parts' };
+    return undefined;
+  }
+
   function sayInOrder(lines: Speech[]) {
     const [first, ...rest] = lines;
     if (first) speaker.say(first, () => sayInOrder(rest));
@@ -967,7 +976,9 @@ export function createGame(deps: GameDeps) {
         });
         play('not-yet');
         updateRun(next, { attempt });
-        prompt({ key: 'feedback.retry' });
+        const clue = hintLine(problem);
+        if (clue) speaker.say({ key: 'feedback.retry' }, () => prompt(clue));
+        else prompt({ key: 'feedback.retry' });
         return;
       }
       if (result.kind === 'reveal') {

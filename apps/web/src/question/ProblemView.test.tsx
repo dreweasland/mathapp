@@ -83,6 +83,31 @@ describe('every problem a generator can make', () => {
     }
   });
 
+  it('never gives the answer away in a shape hint', () => {
+    let checked = 0;
+    for (const problem of problems) {
+      const o = problem.operands;
+      if (o.kind !== 'shape-name' && o.kind !== 'shape-sides' && o.kind !== 'shares') continue;
+      checked++;
+      const { unmount } = show(problem, { help: 'hint' });
+      const hint = screen.getByTestId('hint');
+      const where = JSON.stringify(problem);
+      if (o.kind === 'shape-name') {
+        // The clue describes the shape; it never draws it to be matched.
+        expect(hint.querySelector(`[aria-label="${o.shape}"]`), where).toBeNull();
+      }
+      if (o.kind === 'shape-sides') {
+        expect(hint.textContent?.match(/\d+/g) ?? [], where).not.toContain(problem.answer);
+      }
+      if (o.kind === 'shares') {
+        const answerPicture = `${o.shape} in ${o.parts} equal parts`;
+        expect(hint.querySelector(`[aria-label="${answerPicture}"]`), where).toBeNull();
+      }
+      unmount();
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it('shows the real answer on reveal', () => {
     for (const problem of problems) {
       const { container, unmount } = show(problem, { help: 'reveal' });

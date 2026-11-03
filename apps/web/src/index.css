@@ -259,6 +259,17 @@ button {
     opacity: 1;
   }
 }
+/* A big shape to count on most phones, but never so big it pushes the answers off a small one. */
+.prompt-shape {
+  max-height: 18dvh;
+  width: auto;
+}
+@media (max-height: 600px) {
+  .prompt-shape {
+    max-height: 11dvh;
+  }
+}
+
 .shake {
   animation: shake 360ms ease-out;
 }
