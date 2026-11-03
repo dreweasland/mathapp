@@ -15,7 +15,7 @@ import {
   Pill,
   Ruler,
 } from '../visuals/Numbers';
-import { DAY_EMOJI, OBJECT_EMOJI, SCENE_EMOJI, STORY_EMOJI } from '../visuals/scenes';
+import { SCENE_ART, StoryPic } from '../visuals/StoryArt';
 import { TenFrames } from '../visuals/TenFrame';
 import { Icon } from '../ui/icons';
 import { MINUS } from './format';
@@ -34,31 +34,14 @@ const Blank = () => (
   <span className="mx-1 inline-block min-w-12 border-b-6 border-ink px-1">?</span>
 );
 
-function Animals({
-  emoji,
-  count,
-  tint,
-}: {
-  emoji: string;
-  count: number;
-  tint?: string | undefined;
-}) {
+function Animals({ name, count }: { name: string; count: number }) {
   // Past a dozen, drawing them all stops helping and just fills the screen.
-  if (count > 12) {
-    return (
-      <span aria-hidden="true" className="text-5xl" style={tint ? { filter: tint } : undefined}>
-        {emoji}
-      </span>
-    );
-  }
+  if (count > 12) return <StoryPic name={name} size={56} />;
   return (
-    <div
-      className="flex max-w-40 flex-wrap justify-center text-3xl"
-      style={tint ? { filter: tint } : undefined}
-    >
+    <div className="flex max-w-40 flex-wrap justify-center gap-0.5">
       {Array.from({ length: count }, (_, i) => (
-        <span key={i} data-animal aria-hidden="true">
-          {emoji}
+        <span key={i} data-animal className="inline-flex">
+          <StoryPic name={name} size={32} />
         </span>
       ))}
     </div>
@@ -67,14 +50,14 @@ function Animals({
 
 function WordPicture({ problem }: { problem: Problem }) {
   const { picture, operands } = problem;
-  const scene = picture && SCENE_EMOJI[picture.scene];
+  const scene = picture && SCENE_ART[picture.scene];
   if (!picture || !scene) return null;
   const [a = 0, b = 0] = picture.counts;
   const taking = operands.kind === 'arith' && operands.op === 'sub';
   return (
     <div className="flex items-center justify-center gap-3" role="img" aria-label="story picture">
       <div className="text-center">
-        <Animals emoji={scene.first} count={a} />
+        <Animals name={scene.first} count={a} />
         <p className="text-3xl font-extrabold">{a}</p>
       </div>
       {/* A take-away shows who starts there. The hint shows who left. */}
@@ -82,7 +65,7 @@ function WordPicture({ problem }: { problem: Problem }) {
         <>
           <span className="text-4xl font-extrabold">+</span>
           <div className="text-center">
-            <Animals emoji={scene.second} count={b} tint={scene.tint} />
+            <Animals name={scene.second} count={b} />
             <p className="text-3xl font-extrabold">{b}</p>
           </div>
         </>
@@ -107,9 +90,7 @@ function StorySteps({ problem }: { problem: Problem }) {
   if (o.kind !== 'two-step') return null;
   return (
     <div className="flex flex-col items-center gap-2" role="img" aria-label="story picture">
-      <span className="text-6xl" aria-hidden="true">
-        {STORY_EMOJI[problem.picture?.scene ?? ''] ?? '📖'}
-      </span>
+      <StoryPic name={problem.picture?.scene ?? 'book'} size={72} />
       <div className="flex flex-wrap items-center justify-center gap-2" data-testid="story-steps">
         <Pill>{o.a}</Pill>
         <Pill>
@@ -158,11 +139,7 @@ function laterKinds(problem: Problem, o: Operands) {
         </Big>
       );
     case 'am-pm':
-      return (
-        <span className="text-7xl" aria-hidden="true">
-          {DAY_EMOJI[o.scene]}
-        </span>
-      );
+      return <StoryPic name={o.scene} size={96} />;
     case 'two-step':
       return <StorySteps problem={problem} />;
     case 'ruler':
@@ -170,9 +147,7 @@ function laterKinds(problem: Problem, o: Operands) {
     case 'estimate':
       return (
         <div className="flex items-center gap-3">
-          <span className="text-7xl" aria-hidden="true">
-            {OBJECT_EMOJI[o.object]}
-          </span>
+          <StoryPic name={o.object} size={88} />
           <span className="text-4xl font-extrabold">{o.unit}</span>
         </div>
       );

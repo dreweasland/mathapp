@@ -1,4 +1,4 @@
-import { LENGTH_EMOJI } from './scenes';
+import { StoryPic } from './StoryArt';
 
 const COLORS = ['bg-sky', 'bg-sun', 'bg-leaf'];
 
@@ -16,7 +16,7 @@ export function LengthBar({
 }) {
   return (
     <div className="flex w-full items-center gap-2" role="img" aria-label={object}>
-      <span className="text-3xl leading-none">{LENGTH_EMOJI[object]}</span>
+      <StoryPic name={object} size={36} />
       <div className="min-w-0 flex-1">
         <div
           className={`h-7 rounded-full border-2 border-ink ${COLORS[index % COLORS.length]}`}
