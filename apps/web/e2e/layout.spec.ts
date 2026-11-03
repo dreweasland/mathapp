@@ -28,6 +28,39 @@ const CASES = [
   'skill=1.shapes&level=5&kind=shares',
   'skill=1.measure&level=5&type=compare',
   'skill=1.measure&level=5&type=multiple-choice',
+  'skill=2.place-value-1000&level=5&kind=place-value-3&type=number-pad',
+  'skill=2.place-value-1000&level=5&kind=skip',
+  'skill=2.compare-1000&level=5&type=compare',
+  'skill=2.add-within-100&level=5&type=number-pad',
+  'skill=2.sub-within-100&level=5&type=multiple-choice',
+  'skill=2.add-sub-1000&level=5&type=number-pad',
+  'skill=2.even-odd&level=5&kind=even-odd',
+  'skill=2.even-odd&level=3&kind=skip',
+  'skill=2.arrays&level=5&type=number-pad',
+  'skill=2.money&level=5&kind=money&type=number-pad',
+  'skill=2.money&level=5&kind=money&type=multiple-choice',
+  'skill=2.money&level=5&kind=make-amount',
+  'skill=2.money&level=5&kind=change&type=number-pad',
+  'skill=2.time-5min&level=5&type=clock-face',
+  'skill=2.time-5min&level=5&kind=am-pm',
+  'skill=2.word-problems-2step&level=5&kind=two-step&type=number-pad',
+  'skill=2.word-problems-2step&level=2&kind=arith&type=multiple-choice',
+  'skill=2.measure-units&level=5&kind=ruler&type=number-pad',
+  'skill=2.measure-units&level=5&kind=estimate',
+  'skill=3.mult-concept&level=5&kind=array&type=number-pad',
+  'skill=3.mult-facts&level=5&type=multiple-choice',
+  'skill=3.div-concept&level=5&kind=share&type=number-pad',
+  'skill=3.div-facts&level=5&type=number-pad',
+  'skill=3.fact-families-md&level=5&type=number-pad',
+  'skill=3.round&level=5&type=number-pad',
+  'skill=3.fractions-unit&level=5&kind=fraction&type=multiple-choice',
+  'skill=3.fractions-compare&level=5&type=compare',
+  'skill=3.fractions-compare&level=5&kind=fraction-compare&type=multiple-choice',
+  'skill=3.fractions-compare&level=5&kind=fraction-equal',
+  'skill=3.time-minute&level=5&kind=elapsed&type=number-pad',
+  'skill=3.time-minute&level=5&kind=elapsed&type=multiple-choice',
+  'skill=3.area-perimeter&level=5&type=number-pad',
+  'skill=3.word-problems-4ops&level=5&type=number-pad',
 ];
 
 const VIEWPORTS = [
@@ -57,6 +90,10 @@ async function problems(page: Page) {
     }
     const prompt = document.querySelector('[data-testid="prompt"]')?.getBoundingClientRect();
     const scrollsSideways = document.documentElement.scrollWidth > innerWidth;
+    // A bar in a centered column can collapse to nothing and still "fit".
+    for (const bar of document.querySelectorAll('[data-testid="fraction-bar"]')) {
+      if (bar.getBoundingClientRect().width < 150) tooSmall.push('fraction bar collapsed');
+    }
     return {
       tooSmall,
       offScreen,

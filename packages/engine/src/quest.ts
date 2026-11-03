@@ -3,6 +3,8 @@ import { factSkill, parseFactId } from './facts';
 import { isUnlocked, selectReview, selectToday, type TodayMode } from './frontier';
 import { generatorFor } from './generators';
 import { arithProblem } from './generators/arith';
+import { divFactProblem } from './generators/divFacts';
+import { multFactProblem } from './generators/multFacts';
 import { clampDifficulty } from './problem';
 import { hashSeed, mulberry32, type Rng } from './rng';
 import type { FactCard, LocalDate, SkillState } from './state';
@@ -42,6 +44,8 @@ export interface DailyQuest {
   problemCount: number;
   /** A rough planning figure, not a measurement; check it against real sessions. */
   estimatedMinutes: number;
+  /** Free-play practice: same tries and hints, half the coins, and it counts for nothing else. */
+  free?: true;
 }
 
 export interface QuestInput {
@@ -92,6 +96,8 @@ function drawUnique(make: () => Problem, seen: Set<string>): Problem {
 /** A fact card as a problem. Warm-up is fast, so it's a tap or a number pad. */
 export function factProblem(factId: string, rng: Rng): Problem {
   const { op, a, b } = parseFactId(factId);
+  if (op === 'mul') return multFactProblem(rng, 1, a, b);
+  if (op === 'div') return divFactProblem(rng, 1, a, b);
   return arithProblem(rng, {
     skillId: factSkill({ id: factId, op, a, b }),
     difficulty: 1,
@@ -109,7 +115,7 @@ export function factProblem(factId: string, rng: Rng): Problem {
 }
 
 /** Taught already. A skill that's merely open hasn't been shown to the child yet. */
-const hasStarted = (states: SkillStates, skill: SkillDef): boolean => {
+export const hasStarted = (states: SkillStates, skill: SkillDef): boolean => {
   const state = states[skill.id];
   return (state?.attempts ?? 0) > 0 || state?.placedOut === true || state?.masteredAt !== undefined;
 };

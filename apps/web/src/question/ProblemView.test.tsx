@@ -66,6 +66,23 @@ describe('every problem a generator can make', () => {
     }
   });
 
+  it('never gives the answer away in a counting hint', () => {
+    const KINDS = ['money', 'array', 'mult', 'area', 'div', 'share'];
+    for (const problem of problems) {
+      if (!KINDS.includes(problem.operands.kind)) continue;
+      const { unmount } = show(problem, { help: 'hint' });
+      const shown = screen.getByTestId('hint').textContent?.match(/\d+/g) ?? [];
+      const sides =
+        problem.operands.kind === 'area'
+          ? [problem.operands.w, problem.operands.h].map(String)
+          : [];
+      if (!sides.includes(problem.answer)) {
+        expect(shown, JSON.stringify(problem)).not.toContain(problem.answer);
+      }
+      unmount();
+    }
+  });
+
   it('shows the real answer on reveal', () => {
     for (const problem of problems) {
       const { container, unmount } = show(problem, { help: 'reveal' });
@@ -144,10 +161,12 @@ describe('number pad', () => {
     fireEvent.click(screen.getByRole('button', { name: '7' }));
     expect(screen.getByLabelText('your answer').textContent).toBe('7');
   });
-  it('stops at three digits, enough for 120', () => {
+  it('stops at four digits, enough for 1000', () => {
     show(pad);
-    for (const d of ['1', '2', '0', '5']) fireEvent.click(screen.getByRole('button', { name: d }));
-    expect(screen.getByLabelText('your answer').textContent).toBe('120');
+    for (const d of ['1', '0', '0', '0', '5']) {
+      fireEvent.click(screen.getByRole('button', { name: d }));
+    }
+    expect(screen.getByLabelText('your answer').textContent).toBe('1000');
   });
   it('clears after checking, ready for the second try', () => {
     const { onAnswer } = show(pad);

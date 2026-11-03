@@ -1,8 +1,9 @@
-import { GRADE_1_SKILLS } from '@mathapp/content';
+import { ALL_SKILLS } from '@mathapp/content';
 import {
   grantShield,
   markDelivered,
   newStreak,
+  startAtGrade,
   startAtSkill,
   type Attempt,
   type ChildProfile,
@@ -70,11 +71,26 @@ export function parentRepository(db: AppDb, now: () => number = Date.now) {
     /** Placement override: everything before this skill counts as passed. */
     async startAt(child: ChildProfile, skillId: string) {
       const { states } = await progress.load(child.id);
-      const next = startAtSkill(skillId, GRADE_1_SKILLS, states, child.id, now());
+      const next = startAtSkill(skillId, ALL_SKILLS, states, child.id, now());
       const rows = Object.values(next).filter((s) => s !== undefined);
       await db.transaction('rw', db.skillStates, db.children, async () => {
         await db.skillStates.bulkPut(rows);
         await db.children.update(child.id, { placedAt: child.placedAt ?? now(), updatedAt: now() });
+      });
+    },
+
+    /** Moves a child up a grade. Earned things stay; earlier skills count as passed. */
+    async moveToGrade(child: ChildProfile, grade: ChildProfile['grade']) {
+      const { states } = await progress.load(child.id);
+      const next = startAtGrade(grade, ALL_SKILLS, states, child.id, now());
+      const rows = Object.values(next).filter((s) => s !== undefined);
+      await db.transaction('rw', db.skillStates, db.children, async () => {
+        await db.skillStates.bulkPut(rows);
+        await db.children.update(child.id, {
+          grade,
+          placedAt: child.placedAt ?? now(),
+          updatedAt: now(),
+        });
       });
     },
 

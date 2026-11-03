@@ -9,6 +9,8 @@ export interface Speaker {
   /** Replaces anything already being said. `onDone` always fires, even if speech fails. */
   say(line: Speech, onDone?: () => void): void;
   stop(): void;
+  /** A voice by name, or the device's default. A voice that's gone falls back to the default. */
+  setVoice(name: string | undefined): void;
 }
 
 /** iOS sometimes never fires `onend`, so a timer guards everything that waits on speech. */
@@ -21,7 +23,11 @@ const watchdogMs = (text: string) => 1500 + text.length * 90;
 export function createSpeaker(synth = window.speechSynthesis as SpeechSynthesis | undefined) {
   let token = 0;
   let unlocked = false;
+  let voiceName: string | undefined;
   const speaker: Speaker = {
+    setVoice(name) {
+      voiceName = name;
+    },
     available: synth !== undefined && 'SpeechSynthesisUtterance' in window,
     unlock() {
       if (!synth || unlocked || !speaker.available) return;
@@ -45,6 +51,8 @@ export function createSpeaker(synth = window.speechSynthesis as SpeechSynthesis 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
       utterance.rate = 0.9;
+      const voice = voiceName ? synth.getVoices().find((v) => v.name === voiceName) : undefined;
+      if (voice) utterance.voice = voice;
       utterance.onend = finish;
       utterance.onerror = finish;
       synth.speak(utterance);

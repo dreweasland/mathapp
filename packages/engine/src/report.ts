@@ -1,7 +1,7 @@
 import { addDays } from './dates';
 import { topError } from './errors';
 import { factHeat, type FactHeat } from './factDeck';
-import { addFactId, subFactId, type FactOp } from './facts';
+import { addFactId, divFactId, mulFactId, subFactId, type FactOp } from './facts';
 import { mapStatus, selectFrontier, type MapStatus } from './frontier';
 import type { Attempt, ErrorType, FactCard, LocalDate, Session } from './state';
 import type { SkillDef, SkillStates } from './types';
@@ -111,16 +111,18 @@ export interface SkillRow {
   topError?: ErrorType;
 }
 
+/** `graph` is the whole curriculum, so a partial list still places each skill correctly. */
 export function skillRows(
   skills: SkillDef[],
   states: SkillStates,
   attempts: Attempt[],
+  graph: SkillDef[] = skills,
 ): SkillRow[] {
   return skills.map((skill) => {
     const state = states[skill.id];
     const row: SkillRow = {
       skill,
-      status: mapStatus(skill, skills, states),
+      status: mapStatus(skill, graph, states),
       mastery: Math.round(state?.mastery ?? 0),
       attempts: state?.attempts ?? 0,
     };
@@ -141,24 +143,41 @@ export interface FactCell {
 
 export interface FactGrid {
   op: FactOp;
-  /** 11 rows of 11. Addition: row + column. Subtraction: (row + column) − row. */
+  /** Row and column headings: 0–10 for add and subtract, 1–10 for multiply and divide. */
+  side: number[];
+  /** Addition: row + column. Subtraction: (row + column) − row. And the same for × and ÷. */
   rows: FactCell[][];
   counts: Record<FactHeat, number>;
 }
 
-const SIDE = Array.from({ length: 11 }, (_, i) => i);
+const ZERO_TO_TEN = Array.from({ length: 11 }, (_, i) => i);
+const ONE_TO_TEN = ZERO_TO_TEN.slice(1);
+
+function factCell(op: FactOp, row: number, col: number): { id: string; label: string } {
+  switch (op) {
+    case 'add':
+      return { id: addFactId(row, col) as string, label: `${row}+${col}` };
+    case 'sub':
+      return { id: subFactId(row + col, row) as string, label: `${row + col}−${row}` };
+    case 'mul':
+      return { id: mulFactId(row, col) as string, label: `${row}×${col}` };
+    case 'div':
+      return { id: divFactId(row * col, row) as string, label: `${row * col}÷${row}` };
+  }
+}
 
 export function factGrid(op: FactOp, cards: ReadonlyMap<string, FactCard>): FactGrid {
   const counts: Record<FactHeat, number> = { automatic: 0, quick: 0, working: 0, unseen: 0 };
-  const rows = SIDE.map((row) =>
-    SIDE.map((col) => {
-      const id = (op === 'add' ? addFactId(row, col) : subFactId(row + col, row)) as string;
-      const heat = factHeat(cards.get(id));
+  const side = op === 'add' || op === 'sub' ? ZERO_TO_TEN : ONE_TO_TEN;
+  const rows = side.map((row) =>
+    side.map((col) => {
+      const cell = factCell(op, row, col);
+      const heat = factHeat(cards.get(cell.id));
       counts[heat] += 1;
-      return { id, heat, label: op === 'add' ? `${row}+${col}` : `${row + col}−${row}` };
+      return { ...cell, heat };
     }),
   );
-  return { op, rows, counts };
+  return { op, side, rows, counts };
 }
 
 export interface SkillSummary {

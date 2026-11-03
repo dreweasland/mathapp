@@ -1,6 +1,8 @@
 import { WORD_SCENES } from '@mathapp/engine';
 import { ITEM_NAMES } from './collectibles';
 import { GRADE_1_SKILLS } from './grade1';
+import { GRADE_2_SKILLS } from './grade2';
+import { GRADE_3_SKILLS } from './grade3';
 
 /**
  * Every line the app speaks. `{name}` is filled from the speech params. Recorded clips can
@@ -61,10 +63,80 @@ export const STRINGS: Record<string, string> = {
   'q.measure-middle': 'Tap the one in the middle. Not the longest, and not the shortest.',
   ...WORD_STORIES,
 
+  // Grade 2
+  'q.pv3-value': 'What number is {hundreds} hundreds, {tens} tens and {ones} ones?',
+  'q.pv3-hundreds': 'How many hundreds are in {n}?',
+  'q.pv3-tens': 'How many tens are in the tens place of {n}?',
+  'q.pv3-ones': 'How many ones are in the ones place of {n}?',
+  'q.skip': 'Count by {size}. What comes after {from}?',
+  'q.skip-back': 'Count back by {size}. What comes after {from}?',
+  'q.even-odd': 'Is {n} even or odd?',
+  'q.next-even': '{n} is even. What is the next even number?',
+  'q.next-odd': '{n} is odd. What is the next odd number?',
+  'q.array': 'There are {rows} rows with {cols} in each row. How many in all?',
+  'q.money-cents': 'How many cents is this?',
+  'q.money-dollars': 'How many dollars is this?',
+  'q.money-change':
+    'You pay one dollar for something that costs {cost} cents. How many cents do you get back?',
+  'q.money-make': 'Which coins make {target} cents?',
+  'q.time-past': 'Tap the clock that shows {minute} minutes after {hour}.',
+  'q.ampm.breakfast': 'You eat breakfast at 7. Is that a.m. or p.m.?',
+  'q.ampm.school-bus': 'The school bus comes at 8. Is that a.m. or p.m.?',
+  'q.ampm.sunrise': 'The sun comes up at 6. Is that a.m. or p.m.?',
+  'q.ampm.dinner': 'You eat dinner at 6. Is that a.m. or p.m.?',
+  'q.ampm.bedtime': 'You go to bed at 8. Is that a.m. or p.m.?',
+  'q.ampm.stars': 'The stars are out at 9. Is that a.m. or p.m.?',
+  'q.word2.stickers':
+    'You have {a} stickers. You get {b} more, then give {c} to a friend. How many stickers do you have now?',
+  'q.word2.marbles':
+    'A jar has {a} marbles. You take out {b}, then {c} more. How many marbles are in the jar now?',
+  'q.word2.books':
+    'A shelf has {a} books. You add {b} books, then {c} more. How many books are on the shelf now?',
+  'q.word2.bus':
+    'A bus has {a} riders. {b} get off, then {c} get on. How many riders are on the bus now?',
+  'q.ruler-in': 'How many inches long is it?',
+  'q.ruler-cm': 'How many centimeters long is it?',
+  'q.estimate-in': 'About how many inches long is a {object}?',
+  'q.estimate-cm': 'About how many centimeters long is a {object}?',
+
+  // Grade 3
+  'q.mult-groups': 'There are {rows} groups with {cols} in each group. How many in all?',
+  'q.mult-array': 'There are {rows} rows with {cols} in each row. How many in all?',
+  'q.mult-area': 'This rectangle has {rows} rows of {cols} squares. How many squares?',
+  'q.mult': 'What is {a} times {b}?',
+  'q.div': 'What is {a} divided by {b}?',
+  'q.share-each': 'Share {total} equally into {parts} groups. How many in each group?',
+  'q.share-groups': 'Put {total} into equal groups of {each}. How many groups?',
+  'q.unknown-factor': '{known} times what makes {product}?',
+  'q.family-md-flip': '{a} times {b} is {product}. So what is {b} times {a}?',
+  'q.family-md-div-a': '{a} times {b} is {product}. So what is {product} divided by {a}?',
+  'q.family-md-div-b': '{a} times {b} is {product}. So what is {product} divided by {b}?',
+  'q.round': 'Round {n} to the nearest {to}.',
+  'q.fraction-shape': 'What fraction is colored in?',
+  'q.fraction-parts': 'How many equal parts is this cut into?',
+  'q.fraction-line': 'What fraction is the dot on the number line?',
+  'q.fraction-line-parts': 'How many equal parts are between 0 and 1?',
+  'q.fraction-bigger': 'Which is bigger, {an} over {ad} or {bn} over {bd}? Or are they the same?',
+  'q.compare-symbol-fraction': 'Which sign goes between {an} over {ad} and {bn} over {bd}?',
+  'q.fraction-equal': '{n} over {d} is the same as what over {bottom}?',
+  'q.elapsed-minutes': 'It starts at {start} and ends at {end}. How many minutes is that?',
+  'q.elapsed-end': 'It is {start}. {passed} minutes go by. What time is it now?',
+  'q.area': 'The rectangle is {w} long and {h} wide. How many squares cover it?',
+  'q.perimeter': 'The rectangle is {w} long and {h} wide. How far is it all the way around?',
+  'q.word4.apple-bags':
+    'There are {a} bags with {b} apples in each. You eat {c} apples. How many apples are left?',
+  'q.word4.egg-boxes':
+    'There are {a} boxes with {b} eggs in each, plus {c} more eggs. How many eggs in all?',
+  'q.word4.share-cookies':
+    'You bake {a} cookies, then {b} more. {c} friends share them equally. How many does each friend get?',
+  'q.word4.team-seats':
+    'There are {a} seats. {b} are taken. The rest are shared equally by {c} teams. How many seats does each team get?',
+
   // Saying the answer out loud, when it's shown
   'answer.number': 'The answer is {value}.',
   'answer.time-hour': "It's {hour} o'clock.",
   'answer.time-half': "It's half past {hour}.",
+  'answer.time-minutes': "It's {time}.",
   'answer.shape': 'This one is the {shape}.',
   'answer.this-one': 'It is this one.',
   'answer.bigger': '{n} is bigger.',
@@ -73,6 +145,10 @@ export const STRINGS: Record<string, string> = {
   'answer.less': '{a} is less than {b}.',
   'answer.equal': '{a} is equal to {b}.',
   'answer.family': '{whole} take away {a} is {b}.',
+  'answer.word': 'It is {word}.',
+  'answer.fraction': 'It is {n} over {d}.',
+  'answer.fraction-same': 'They are the same size.',
+  'answer.fraction-bigger': '{n} over {d} is bigger.',
 
   // Skills, read aloud on the map
   'skill.1.counting': 'Counting',
@@ -89,6 +165,9 @@ export const STRINGS: Record<string, string> = {
   'skill.1.time': 'Clocks',
   'skill.1.shapes': 'Shapes',
   'skill.1.measure': 'Long and short',
+  ...Object.fromEntries(
+    [...GRADE_2_SKILLS, ...GRADE_3_SKILLS].map((s) => [s.speechKey, s.kidName]),
+  ),
 
   // Feedback
   'feedback.correct.1': 'Yes!',
@@ -133,7 +212,12 @@ export const STRINGS: Record<string, string> = {
   'streak.shield-earned': 'You earned a shield!',
 
   // Badges, read aloud on the trophy wall
-  ...Object.fromEntries(GRADE_1_SKILLS.map((s) => [`badge.${s.id}`, s.badgeName])),
+  ...Object.fromEntries(
+    [...GRADE_1_SKILLS, ...GRADE_2_SKILLS, ...GRADE_3_SKILLS].map((s) => [
+      `badge.${s.id}`,
+      s.badgeName,
+    ]),
+  ),
   'badge.earned': 'You earned a new badge! {badge}!',
   'badge.waiting': '{badge}. You can earn this one!',
 
@@ -175,6 +259,14 @@ export const STRINGS: Record<string, string> = {
   'goal.ready': 'You did it! Time for {reward}! Go tell your grown-up.',
   'goal.reached': 'You reached your goal! Time for {reward}! Go tell your grown-up.',
   'cheer.from': 'A cheer from your grown-up!',
+
+  // Free play
+  'nav.free': 'Free play! The lightning is a fast game. The rest is practice.',
+  'free.done': 'Nice practice! You earned {coins} coins.',
+  'blitz.go': 'Go! Get as many as you can.',
+  'blitz.done': 'You got {score}. Your best is {best}.',
+  'blitz.best': 'That is your new best! {score}!',
+  'free.empty': 'Finish a quest to open this up.',
 
   // Missions
   'mission.in-a-row': 'Get {target} in a row.',

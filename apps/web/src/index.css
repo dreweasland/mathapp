@@ -75,6 +75,10 @@ button {
 .tap-primary:disabled {
   opacity: 0.45;
 }
+.tap-blitz {
+  background: var(--color-ink);
+  color: white;
+}
 .tap-used {
   background: #eef0f3;
   box-shadow: none;
@@ -145,10 +149,51 @@ button {
     opacity: 1;
   }
 }
+.blitz-fill {
+  animation: blitz-fill linear forwards;
+}
+@keyframes blitz-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .bounce,
   .pop {
     animation: none;
+  }
+}
+
+/* Set per child in the grown-ups' area. Green and amber are the hard pair, so neither stays. */
+:root[data-palette='safe'] {
+  --color-sun: #f0e442;
+  --color-leaf: #56b4e9;
+  --color-sky: #cfe6f3;
+}
+:root[data-motion='reduced'] *,
+:root[data-motion='reduced'] *::before {
+  transition: none !important;
+}
+:root[data-motion='reduced'] .bounce,
+:root[data-motion='reduced'] .pop {
+  animation: none;
+}
+/* Check mark under the left thumb, and the answers on the left when the phone is sideways. */
+:root[data-hand='left'] .pad-check {
+  order: 1;
+}
+:root[data-hand='left'] .pad-zero {
+  order: 2;
+}
+:root[data-hand='left'] .pad-erase {
+  order: 3;
+}
+@media (orientation: landscape) {
+  :root[data-hand='left'] .problem-body {
+    flex-direction: row-reverse;
   }
 }
 

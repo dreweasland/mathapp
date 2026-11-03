@@ -35,7 +35,7 @@ describe('answer-key audit', () => {
     expect(checked).toBe(2500);
   });
 
-  it('covers all 14 Grade 1 skills', () => {
-    expect(Object.keys(GENERATORS)).toHaveLength(14);
+  it('covers all 38 skills, Grades 1 to 3', () => {
+    expect(Object.keys(GENERATORS)).toHaveLength(38);
   });
 });

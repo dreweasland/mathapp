@@ -114,5 +114,21 @@ export function startAtSkill(
   return applyPlacement([...ancestors], skills, states, childId, at);
 }
 
+/** Starting in a later grade: every skill from the grades before counts as passed. */
+export const startAtGrade = (
+  grade: SkillDef['grade'],
+  skills: SkillDef[],
+  states: SkillStates,
+  childId: string,
+  at: number,
+): SkillStates =>
+  applyPlacement(
+    skills.filter((s) => s.grade < grade).map((s) => s.id),
+    skills,
+    states,
+    childId,
+    at,
+  );
+
 /** A placement seed for a child, kept in one place. */
 export const placementRng = (seed: number): Rng => mulberry32(seed).fork('placement');

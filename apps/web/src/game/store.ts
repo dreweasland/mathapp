@@ -1,12 +1,14 @@
 import {
   COLLECTIBLE_SETS,
   FIRST_ACCESSORY,
-  GRADE_1_SKILLS,
+  ALL_SKILLS,
   answerSpeech,
   cosmeticFor,
   render,
+  skillById,
 } from '@mathapp/content';
 import {
+  BLITZ_MS,
   MISSION_COINS,
   acceptChallenge,
   advance,
@@ -19,8 +21,10 @@ import {
   beatsFastTime,
   beginSection,
   buildDailyQuest,
+  buildPractice,
   buyCosmetic,
   classifyError,
+  coinsForAnswer,
   completeDailyQuest,
   currentItem,
   currentSection,
@@ -31,16 +35,20 @@ import {
   isCorrect,
   justReached,
   mulberry32,
+  newSkillState,
+  nextBlitzProblem,
   nextProbe,
   openNextChest,
   placementRng,
   reconcileStreak,
+  recordBlitz,
   recordProbe,
   refreshUnlocks,
   resumeRun,
   selectToday,
   settleItem,
   skipChallenge,
+  startAtGrade,
   startPlacement,
   startRun,
   submitAnswer,
@@ -57,6 +65,7 @@ import {
   type QuestRun,
   type Rng,
   type Session,
+  type SkillState,
   type Speech,
   type StreakEvent,
   type TryResult,
@@ -83,18 +92,22 @@ export type Screen =
   | 'placement'
   | 'home'
   | 'cheer'
+  | 'blitz'
+  | 'free-done'
   | 'quest'
   | 'celebrate'
   | 'map'
   | 'trophies'
   | 'stickers'
-  | 'shop';
+  | 'shop'
+  | 'free';
 
 const PLACE_LINE = {
   map: 'nav.map',
   trophies: 'nav.trophies',
   stickers: 'nav.stickers',
   shop: 'nav.shop',
+  free: 'nav.free',
 } as const;
 export type Place = keyof typeof PLACE_LINE;
 export type Mood = 'idle' | 'happy' | 'thinking' | 'cheer';
@@ -117,6 +130,14 @@ export interface GameDeps {
   after: (ms: number, run: () => void) => void;
 }
 
+export interface BlitzRun {
+  id: string;
+  skillId: string;
+  problem: Problem;
+  score: number;
+  coins: number;
+}
+
 export interface GameState {
   screen: Screen;
   child?: ChildProfile;
@@ -126,6 +147,10 @@ export interface GameState {
   backupDue: boolean;
   /** The cheer on screen now. */
   cheer?: StoredCheer;
+  /** A Fact Blitz in progress. */
+  blitz?: BlitzRun;
+  /** What the last free-play set earned, for its small ending screen. */
+  freeResult?: { coins: number; score?: number; best?: number; isBest?: boolean };
   /** The day this data was loaded for. */
   enteredOn?: string;
   progress?: ChildProgress;
@@ -183,8 +208,27 @@ export function createGame(deps: GameDeps) {
   let shownAt = 0;
   let speechEndedAt: number | undefined;
   let placementRngFor: Rng | undefined;
+  let blitzRng: Rng | undefined;
 
   const today = () => localDate(new Date(now()));
+  const newSession = (
+    childId: string,
+    type: Session['type'],
+    at: number,
+    run?: QuestRun,
+  ): Session => ({
+    id: crypto.randomUUID(),
+    childId,
+    startedAt: at,
+    date: today(),
+    type,
+    problemsCount: 0,
+    correctCount: 0,
+    coinsEarned: 0,
+    completedQuest: false,
+    updatedAt: at,
+    ...(run ? { run } : {}),
+  });
   const need = <T>(value: T | undefined): T => {
     if (value === undefined) throw new Error('Game state missing');
     return value;
@@ -263,7 +307,23 @@ export function createGame(deps: GameDeps) {
     }
   }
 
+  /** Free play ends small: a coin count and the way home, with no chest and no streak. */
+  function endFreeSession(result: GameState['freeResult'], line: Speech) {
+    const session = need(get().session);
+    const ended: Session = { ...session, endedAt: now(), updatedAt: now() };
+    delete ended.run;
+    save({ session: ended });
+    set({ session: undefined, run: undefined, blitz: undefined, freeResult: result });
+    set({ screen: 'free-done', mood: 'cheer', feedback: undefined });
+    play('cheer');
+    speaker.say(line);
+  }
+
   function celebrate(run: QuestRun, skipped = false) {
+    if (run.quest.free) {
+      endFreeSession({ coins: run.coins }, { key: 'free.done', params: { coins: run.coins } });
+      return;
+    }
     const session = need(get().session);
     const roughDay = run.answered > 0 && run.correct / run.answered < 0.5;
     const ended: Session = {
@@ -402,7 +462,7 @@ export function createGame(deps: GameDeps) {
   function ensureMissions(date: string) {
     const { child, progress: data } = get();
     if (!child || !data || get().missions.length > 0) return;
-    const today = selectToday(GRADE_1_SKILLS, data.states, child.questsCompleted);
+    const today = selectToday(ALL_SKILLS, data.states, child.questsCompleted);
     const missions = generateMissions(
       {
         childId: child.id,
@@ -462,7 +522,7 @@ export function createGame(deps: GameDeps) {
   }
 
   function settle(
-    run: QuestRun,
+    run: Pick<QuestRun, 'firstError'> & { date: string },
     problem: Problem,
     outcome: NonNullable<QuestRun['lastOutcome']>,
     ms: number,
@@ -473,7 +533,7 @@ export function createGame(deps: GameDeps) {
     const child = need(state.child);
     const at = now();
     const { states, card } = settleItem({
-      skills: GRADE_1_SKILLS,
+      skills: ALL_SKILLS,
       states: data.states,
       card: problem.factId ? data.cards.get(problem.factId) : undefined,
       childId: child.id,
@@ -481,7 +541,7 @@ export function createGame(deps: GameDeps) {
       outcome,
       errorType: run.firstError,
       responseMs: ms,
-      today: run.quest.date,
+      today: run.date,
       at,
     });
     const wallet = coins > 0 ? earnCoins(data.wallet, coins, at) : data.wallet;
@@ -492,13 +552,18 @@ export function createGame(deps: GameDeps) {
       states[problem.skillId]?.masteredAt !== undefined;
     if (earned) set({ newBadges: [...state.newBadges, problem.skillId] });
     set({ progress: { ...data, states, cards, wallet } });
-    const goals = earned ? moveGoals('skills', run.quest.date) : {};
+    const goals = earned ? moveGoals('skills', run.date) : {};
     const skills = Object.values(states).filter((s) => s !== undefined && s.updatedAt === at);
     return { skills: skills as NonNullable<ProgressChange['skills']>, card, wallet, ...goals };
   }
 
+  const where = (run: QuestRun) => ({
+    date: run.quest.date,
+    ...(run.firstError ? { firstError: run.firstError } : {}),
+  });
+
   const fastMsFor = (problem: Problem) =>
-    GRADE_1_SKILLS.find((s) => s.id === problem.skillId)?.fastMs ?? 3000;
+    ALL_SKILLS.find((s) => s.id === problem.skillId)?.fastMs ?? 3000;
 
   function beginQuest() {
     const state = get();
@@ -516,7 +581,7 @@ export function createGame(deps: GameDeps) {
       childId: child.id,
       today: date,
       questsCompleted: child.questsCompleted,
-      skills: GRADE_1_SKILLS,
+      skills: ALL_SKILLS,
       states: data.states,
       factCards: [...data.cards.values()],
     });
@@ -589,8 +654,21 @@ export function createGame(deps: GameDeps) {
       else set({ screen: 'who' });
     },
 
+    /** A child starting past Grade 1 skips the warm-up, which only covers Grade 1. */
     async createChild(input: NewChild) {
-      await actions.enter(await children.create(input));
+      const child = await children.create(input);
+      if (child.grade === 1) {
+        await actions.enter(child);
+        return;
+      }
+      const at = now();
+      const states = startAtGrade(child.grade, ALL_SKILLS, {}, child.id, at);
+      const placed = { ...child, placedAt: at, updatedAt: at };
+      await repo.save({
+        child: placed,
+        skills: Object.values(states).filter((s): s is SkillState => s !== undefined),
+      });
+      await actions.enter(placed);
     },
 
     /** Loads a child and settles any missed days. Safe to repeat. */
@@ -598,8 +676,9 @@ export function createGame(deps: GameDeps) {
       const data = await repo.load(child.id);
       const at = now();
       const date = today();
+      speaker.setVoice(child.settings.voice);
       const settled = reconcileStreak(data.streak, date, at);
-      const states = refreshUnlocks(GRADE_1_SKILLS, data.states, child.id, at);
+      const states = refreshUnlocks(ALL_SKILLS, data.states, child.id, at);
       const sessions = await repo.sessionsOn(child.id, date);
       const note = settled.events.map(eventLine).find((l) => l !== undefined);
       const session = sessions.find((s) => s.type === 'quest' && s.run);
@@ -713,7 +792,7 @@ export function createGame(deps: GameDeps) {
       const child = need(current.child);
       const data = need(current.progress);
       const at = now();
-      const states = applyPlacement(state.passed, GRADE_1_SKILLS, data.states, child.id, at);
+      const states = applyPlacement(state.passed, ALL_SKILLS, data.states, child.id, at);
       const placed: ChildProfile = { ...child, placedAt: at, updatedAt: at };
       const session = { ...need(current.session), endedAt: at, updatedAt: at };
       const skills = Object.values(states).filter((s) => s !== undefined);
@@ -806,18 +885,21 @@ export function createGame(deps: GameDeps) {
       if (result.kind === 'reveal') {
         set({ feedback: result, mood: 'thinking', triedValues: [...get().triedValues, given] });
         play('not-yet');
-        const scored = settle(next, problem, 'missed', ms, 0);
+        const scored = settle(where(next), problem, 'missed', ms, 0);
         updateRun(next, { attempt, ...scored });
         speaker.say({ key: 'feedback.show-answer' }, () => speaker.say(answerSpeech(problem)));
         return;
       }
 
       set({ feedback: result, mood: 'happy' });
-      play('correct');
+      play('correct', Math.max(0, next.inARow - 1));
       const cardBefore = problem.factId ? get().progress?.cards.get(problem.factId) : undefined;
-      const scored = settle(next, problem, result.outcome, ms, result.coins);
-      const events: MissionEvent[] = [{ type: 'answer', inARow: next.inARow }];
-      if (result.tryNumber === 1 && beatsFastTime(cardBefore, true, ms)) {
+      const scored = settle(where(next), problem, result.outcome, ms, result.coins);
+      // Missions belong to the quest; free play can't finish them.
+      const events: MissionEvent[] = next.quest.free
+        ? []
+        : [{ type: 'answer', inARow: next.inARow }];
+      if (!next.quest.free && result.tryNumber === 1 && beatsFastTime(cardBefore, true, ms)) {
         events.push({ type: 'fact-beat' });
       }
       const missions = advanceMissions(events);
@@ -871,8 +953,110 @@ export function createGame(deps: GameDeps) {
     /** Leaving is free: the quest stays exactly where it is for later. */
     goHome() {
       speaker.stop();
+      const { run, session, blitz } = get();
+      if ((run?.quest.free || blitz) && session) {
+        // Free play isn't resumed. What was earned is already saved, answer by answer.
+        const ended: Session = { ...session, endedAt: now(), updatedAt: now() };
+        delete ended.run;
+        save({ session: ended });
+        set({ run: undefined, session: undefined, blitz: undefined });
+      }
       const finished = get().run?.stage === 'finished';
       set({ screen: 'home', feedback: undefined, ...(finished ? { run: undefined } : {}) });
+    },
+
+    /** Secondary on purpose: it only opens once today's quest is done. */
+    startPractice(skillId: string) {
+      const { child, progress: data, todayDone } = get();
+      const skill = skillById(skillId);
+      if (!child || !data || !skill || !todayDone) return;
+      actions.unlockAudio();
+      const at = now();
+      const seed = hashSeed(`${child.id}|${at}|practice`);
+      const quest = buildPractice({
+        childId: child.id,
+        today: today(),
+        skill,
+        state: data.states[skillId],
+        rng: mulberry32(seed),
+        seed,
+      });
+      const run = beginSection(startRun(quest));
+      const session = newSession(child.id, 'free', at, run);
+      set({ session, run, screen: 'quest', newBadges: [] });
+      save({ session });
+      present(run);
+    },
+
+    startBlitz(skillId: string) {
+      const { child, todayDone } = get();
+      if (!child || !todayDone) return;
+      actions.unlockAudio();
+      const at = now();
+      const id = crypto.randomUUID();
+      const rng = mulberry32(hashSeed(`${id}|blitz`));
+      blitzRng = rng;
+      const session = newSession(child.id, 'blitz', at);
+      const problem = nextBlitzProblem(skillId, undefined, rng);
+      set({ session, screen: 'blitz', blitz: { id, skillId, problem, score: 0, coins: 0 } });
+      save({ session });
+      shownAt = now();
+      speechEndedAt = undefined;
+      speaker.say({ key: 'blitz.go' });
+      after(BLITZ_MS, () => {
+        if (get().blitz?.id === id) actions.finishBlitz();
+      });
+    },
+
+    /** One try each: it's a game, so a miss just moves on, with no sound of failure. */
+    answerBlitz(given: string, stoppedAt = now()) {
+      const { blitz, session, progress: data } = get();
+      if (!blitz || !session || !data) return;
+      const { problem } = blitz;
+      const correct = isCorrect(problem, given);
+      const ms = Math.max(0, stoppedAt - shownAt);
+      const fast = ms <= fastMsFor(problem);
+      const coins = coinsForAnswer({ correct, fast, recovered: false, mode: 'free' });
+      const attempt = attemptRow(problem, given, ms, 1, correct);
+      play(correct ? 'correct' : 'tap');
+      const outcome = !correct ? 'missed' : fast ? 'fast' : 'slow';
+      const scored = settle({ date: session.date }, problem, outcome, ms, coins);
+      const next = nextBlitzProblem(blitz.skillId, problem, need(blitzRng));
+      const updated: Session = {
+        ...session,
+        problemsCount: session.problemsCount + 1,
+        correctCount: session.correctCount + (correct ? 1 : 0),
+        coinsEarned: session.coinsEarned + coins,
+        updatedAt: now(),
+      };
+      set({
+        session: updated,
+        blitz: {
+          ...blitz,
+          problem: next,
+          score: blitz.score + (correct ? 1 : 0),
+          coins: blitz.coins + coins,
+        },
+      });
+      save({ attempt, session: updated, ...scored });
+      shownAt = now();
+    },
+
+    finishBlitz() {
+      const { blitz, progress: data, child } = get();
+      if (!blitz || !data || !child) return;
+      const state = data.states[blitz.skillId] ?? newSkillState(child.id, blitz.skillId);
+      const record = recordBlitz(state, blitz.score, now());
+      const states = { ...data.states, [blitz.skillId]: record.state };
+      set({ progress: { ...data, states } });
+      if (record.isBest) save({ skills: [record.state] });
+      const { score, coins } = blitz;
+      endFreeSession(
+        { coins, score, best: record.best, isBest: record.isBest },
+        record.isBest
+          ? { key: 'blitz.best', params: { score } }
+          : { key: 'blitz.done', params: { score, best: record.best } },
+      );
     },
 
     /** One level down from Home, and the mascot is always one tap from it. */
@@ -893,7 +1077,7 @@ export function createGame(deps: GameDeps) {
       if (state.openedChest) return;
       const { reward, inventory } = openNextChest(data.inventory, now());
       if (!reward) return;
-      play('cheer');
+      play('chest');
       set({ openedChest: reward, progress: { ...data, inventory }, mood: 'cheer' });
       save({ inventory });
       const name = reward.itemId ? render(`item.${reward.itemId}`) : '';

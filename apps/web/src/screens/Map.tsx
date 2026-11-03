@@ -1,5 +1,5 @@
-import { GRADE_1_SKILLS, render } from '@mathapp/content';
-import { mapStatus, type MapStatus } from '@mathapp/engine';
+import { ALL_SKILLS, render, skillsInGrade } from '@mathapp/content';
+import { activeGrade, mapStatus, type MapStatus } from '@mathapp/engine';
 import { useEffect, useRef } from 'react';
 import { SKILL_ICON } from '../game/art';
 import { useGame } from '../game/GameProvider';
@@ -36,8 +36,8 @@ export function SkillMap() {
           aria-hidden="true"
           className="absolute inset-y-8 left-1/2 -ml-1 border-l-8 border-dotted border-sun"
         />
-        {GRADE_1_SKILLS.map((skill, i) => {
-          const status = mapStatus(skill, GRADE_1_SKILLS, states);
+        {skillsInGrade(activeGrade(ALL_SKILLS, states)).map((skill, i) => {
+          const status = mapStatus(skill, ALL_SKILLS, states);
           return (
             <li
               key={skill.id}

@@ -19,21 +19,21 @@ apps/web/                  PWA shell
   src/game/                store.ts: the one game store, built from injected deps so tests need no browser
   src/audio/               speech.ts (always by string key), sfx.ts
   src/question/            ProblemView = Prompt + Hint + Answers; one renderer for all 6 question types
-  src/visuals/ src/ui/     clock, ten-frame, shapes, base-ten; mascot, big button
-  src/screens/             Setup, Who, Placement, Home, Cheer, Quest, Celebrate, ChestReveal, Map, Trophies, Stickers, Shop
+  src/visuals/ src/ui/     clock, ten-frame, shapes, base-ten, Numbers (coins, arrays, fractions, rulers); mascot, big button
+  src/screens/             Setup, Who, Placement, Home, Cheer, Quest, Celebrate, ChestReveal, Map, Trophies, Stickers, Shop, Free, Blitz
   src/parent/              grown-ups' area, lazy-loaded: PinGate, ParentApp, pages/, reportDoc (teacher report)
   src/gallery.tsx          dev-only page of any problem, for layout tests; never in the build
-  e2e/                     Playwright: offline, quest, layout, rewards, parent
+  e2e/                     Playwright: offline, quest, layout, rewards, parent, free
 packages/engine/src/
   rng.ts dates.ts          seeded RNG, date-string helpers
   types.ts                 shared types
-  generators/              one generator + test per skill
+  generators/              one generator + test per skill, 38 in all
   mastery difficulty frontier placement factDeck    adaptive logic
   streak wallet goals missions quest rewards        daily loop logic
-  report                   dashboard and teacher-report numbers
+  report free              dashboard and teacher-report numbers; practice and Fact Blitz
   questRun                 tries, sections, end-on-win, resume, scoring (pure; the store just calls it)
   audit.test.ts            independent answer-key audit
-packages/content/src/      grade1.ts (skills), collectibles.ts (sets, shop, prices), strings.en.ts (speech and praise), answerSpeech.ts
+packages/content/src/      grade1-3.ts and skills.ts (ALL_SKILLS), collectibles.ts (sets, shop, prices), strings.en.ts (speech and praise), answerSpeech.ts
 scripts/                   demo-quest.ts and fixtures
 ```
 
@@ -96,7 +96,14 @@ Agreed with the parent before Phase 0.
 - **Grown-up notes on Home:** one at a time in the header (save failure, then install, then backup), because anywhere else small phones push them off screen.
 - **Fact Blitz (Phase 5):** time shows as a bar that fills, with no countdown numbers and no ticking. It stays opt-in.
 - **Standards:** the teacher report says "selected Grade 1 standards". The brief's list omits 1.MD.C.4, 1.OA.D.7–8 and 1.G.A.2, and those stay out unless the curriculum is extended.
-- **Moved to Phase 5:** voice, left/right-hand layout, reduce motion and color-blind palette settings. The brief lists them under the dashboard but also in Phase 5.
+- **Settings:** per child, in the dashboard: voice, left-hand layout, reduce motion, color-blind palette.
+- **Grades:** one graph of 38 skills, worked lowest grade first. The map and the teacher report show the grade the child is in now, set by the frontier; the trophy wall shows that grade and earlier. Placement only covers Grade 1, so a child starting in Grade 2 or 3 skips it and earlier grades count as passed. A grade only moves forward.
+- **Multiplication and division cards:** factors 1–10, 100 of each, in the brief's order. The report shows × and ÷ grids from Grade 3, because one page holds two grids.
+- **Free play:** opens only after today's quest. It pays half coins and updates mastery and fact cards, but never touches the streak, chests, missions or goals. Practice is 8 problems; a new set means choosing to start again. It shows up in the grown-ups' minutes and problems, never as a quest.
+- **Fact Blitz:** one try per fact, so a miss moves on with no "not yet" sound. The best is per skill and against the child's own score only. The problem isn't read aloud, which would use up the minute.
+- **Reminders:** a calendar file with a daily alert. A PWA with no server can't notify, so the "streak at risk" nudge waits for Phase 6. Math time is set in the dashboard rather than Setup, which is already long.
+- **Hints help without solving:** counting hints stop short of the total. `ProblemView.test.tsx` enforces this.
+- **Performance:** only Home and the quest load up front. Everything else is lazy and precached, so offline still works.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
 
 ## How the quest UI works

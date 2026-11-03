@@ -1,6 +1,15 @@
 import type { Candidate } from './distractors';
 import type { Rng } from './rng';
-import type { Choice, Difficulty, QuestionType } from './types';
+import type {
+  Choice,
+  Difficulty,
+  Hint,
+  Operands,
+  Picture,
+  Problem,
+  QuestionType,
+  Speech,
+} from './types';
 
 export const clampDifficulty = (d: number): Difficulty =>
   Math.min(5, Math.max(1, Math.round(d))) as Difficulty;
@@ -42,3 +51,41 @@ export function tagged(rng: Rng, answer: string, wrong: Choice[]): Choice[] {
 }
 
 export const pickType = (rng: Rng, types: readonly QuestionType[]): QuestionType => rng.pick(types);
+
+interface NumberInput {
+  skillId: string;
+  difficulty: Difficulty;
+  operands: Operands;
+  answer: number;
+  speech: Speech;
+  hint: Hint;
+  type: QuestionType;
+  candidates?: Candidate[];
+  min?: number;
+  max?: number;
+  picture?: Picture;
+  factId?: string | undefined;
+}
+
+/** A problem whose answer is one number, on the pad or as big buttons. */
+export function numberProblem(rng: Rng, input: NumberInput): Problem {
+  const { answer, type, candidates = [], min = 0, max = 1000, picture, factId } = input;
+  const problem: Problem = {
+    skillId: input.skillId,
+    questionType: type,
+    difficulty: input.difficulty,
+    operands: input.operands,
+    answer: String(answer),
+    speech: input.speech,
+    hint: input.hint,
+  };
+  if (type === 'multiple-choice') {
+    problem.choices = numericChoices(rng, answer, candidates, { min, max });
+  }
+  if (picture) problem.picture = picture;
+  if (factId) problem.factId = factId;
+  return problem;
+}
+
+export const formatTime = (hour: number, minute: number): string =>
+  `${hour}:${String(minute).padStart(2, '0')}`;

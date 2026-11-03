@@ -1,5 +1,5 @@
-import { GRADE_1_SKILLS } from '@mathapp/content';
-import { MILESTONES } from '@mathapp/engine';
+import { ALL_SKILLS } from '@mathapp/content';
+import { activeGrade, MILESTONES } from '@mathapp/engine';
 import { useState } from 'react';
 import { SKILL_ICON } from '../game/art';
 import { useGame } from '../game/GameProvider';
@@ -41,13 +41,16 @@ export function Trophies() {
   const states = use((s) => s.progress?.states) ?? {};
   const best = use((s) => s.progress?.streak.best ?? 0);
   const [certificate, setCertificate] = useState<number>();
+  // Earlier grades stay on the wall; later ones wait until the child gets there.
+  const grade = activeGrade(ALL_SKILLS, states);
+  const skills = ALL_SKILLS.filter((s) => s.grade <= grade);
   if (certificate) {
     return <Certificate days={certificate} onClose={() => setCertificate(undefined)} />;
   }
   return (
     <PlaceFrame title="Trophies">
       <div className="mx-auto grid max-w-md grid-cols-3 gap-3" data-testid="trophies">
-        {GRADE_1_SKILLS.map((skill) => {
+        {skills.map((skill) => {
           const earned = states[skill.id]?.masteredAt !== undefined;
           return (
             <button

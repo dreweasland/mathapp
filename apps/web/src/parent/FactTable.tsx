@@ -1,22 +1,27 @@
 import type { FactGrid } from '@mathapp/engine';
 import { HEAT_STYLE } from './labels';
 
-const SIDE = Array.from({ length: 11 }, (_, i) => i);
+const SIGN = { add: '+', sub: '−', mul: '×', div: '÷' } as const;
+const NAME = {
+  add: 'Addition facts',
+  sub: 'Subtraction facts',
+  mul: 'Multiplication facts',
+  div: 'Division facts',
+} as const;
 
 /** Inline styles, because the same table goes into the standalone teacher report. */
 export function FactTable({ grid, cell = 22 }: { grid: FactGrid; cell?: number }) {
-  const add = grid.op === 'add';
   const head = { fontSize: cell * 0.5, fontWeight: 700, textAlign: 'center' as const, padding: 0 };
   return (
     <table
       data-testid={`facts-${grid.op}`}
-      aria-label={add ? 'Addition facts' : 'Subtraction facts'}
+      aria-label={NAME[grid.op]}
       style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}
     >
       <thead>
         <tr>
-          <th style={{ ...head, width: cell, height: cell }}>{add ? '+' : '−'}</th>
-          {SIDE.map((n) => (
+          <th style={{ ...head, width: cell, height: cell }}>{SIGN[grid.op]}</th>
+          {grid.side.map((n) => (
             <th key={n} style={{ ...head, width: cell }}>
               {n}
             </th>
@@ -26,7 +31,7 @@ export function FactTable({ grid, cell = 22 }: { grid: FactGrid; cell?: number }
       <tbody>
         {grid.rows.map((row, r) => (
           <tr key={r}>
-            <th style={{ ...head, height: cell }}>{r}</th>
+            <th style={{ ...head, height: cell }}>{grid.side[r]}</th>
             {row.map((fact) => (
               <td
                 key={fact.id}

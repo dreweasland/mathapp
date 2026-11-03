@@ -45,7 +45,7 @@ export function ProblemView({
   const reveal = help === 'reveal';
   const written = reveal ? answerText(problem) : '';
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 landscape:flex-row">
+    <div className="problem-body flex min-h-0 flex-1 flex-col gap-3 landscape:flex-row">
       <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto">
         {/* Auto margins centre it, and unlike centring they can't clip the top when it's tall. */}
         <div className="mt-auto" />

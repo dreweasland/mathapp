@@ -132,7 +132,10 @@ test('every new screen keeps tap targets and fits, on all five sizes', async ({ 
   for (const view of VIEWPORTS) {
     await page.setViewportSize({ width: view.width, height: view.height });
     for (const place of ['home', 'map', 'trophies', 'animals', 'dress up']) {
-      if (place !== 'home') await page.getByRole('button', { name: place }).click();
+      if (place !== 'home') {
+        await page.getByRole('button', { name: place }).click();
+        await expect(page.getByRole('button', { name: 'home' })).toBeVisible();
+      }
       await page.waitForTimeout(50);
       const found = await page.evaluate(() => {
         const small: string[] = [];

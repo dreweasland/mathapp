@@ -1,6 +1,18 @@
 import type { Problem } from '@mathapp/engine';
 import { BaseTen } from '../visuals/BaseTen';
 import { Clock } from '../visuals/Clock';
+import {
+  AreaGrid,
+  CoinRow,
+  DotArray,
+  EqualGroups,
+  FractionBar,
+  Pairs,
+  PlaceChart,
+  RoundLine,
+  RunningTotal,
+  Ruler,
+} from '../visuals/Numbers';
 import { CountedSides, Shape, Shares } from '../visuals/Shape';
 import { LengthBar, lengthObjects } from '../visuals/Lengths';
 import { TenFrames } from '../visuals/TenFrame';
@@ -106,7 +118,35 @@ function Alligator({ a, b, showSign }: { a: number; b: number; showSign: boolean
 }
 
 function clockNumbers(hour: number, minute: number) {
-  return minute === 0 ? [hour, 12] : [hour, 6];
+  return [hour, Math.round(minute / 5) || 12];
+}
+
+const STEP_SIGN = { add: '+', sub: '−', mul: '×', div: '÷' } as const;
+const stepResult = (x: number, op: keyof typeof STEP_SIGN, y: number) =>
+  op === 'add' ? x + y : op === 'sub' ? x - y : op === 'mul' ? x * y : x / y;
+
+/** The first step worked out, so the child only has the second left to do. */
+function Steps({ problem }: { problem: Problem }) {
+  const o = problem.operands;
+  if (o.kind !== 'two-step') return null;
+  const middle = stepResult(o.a, o.first, o.b);
+  return (
+    <div className="text-center text-3xl font-extrabold tabular-nums" data-testid="steps">
+      <p>
+        {o.a} {STEP_SIGN[o.first]} {o.b} = {middle}
+      </p>
+      <p>
+        {middle} {STEP_SIGN[o.second]} {o.c} = ?
+      </p>
+    </div>
+  );
+}
+
+function CoinHint({ problem }: { problem: Problem }) {
+  const o = problem.operands;
+  if (o.kind === 'money') return <RunningTotal items={o.items} />;
+  if (o.kind === 'change') return <p className="text-3xl font-extrabold">{o.cost}¢ → 100¢</p>;
+  return <CoinRow items={[1, 5, 10, 25]} />;
 }
 
 function SortedLengths({ problem }: { problem: Problem }) {
@@ -177,7 +217,83 @@ export function Hint({ problem, reveal }: { problem: Problem; reveal: boolean })
     }
     case 'alligator':
       return <Alligator a={a} b={b} showSign={reveal} />;
+    case 'place-chart': {
+      const rows = params?.['b'] !== undefined ? [a, b] : [a];
+      const op = params?.['op'];
+      return <PlaceChart rows={rows} {...(op ? { sign: op === 'add' ? '+' : '−' } : {})} />;
+    }
+    case 'pairs':
+      return <Pairs n={num(params?.['n'])} />;
+    case 'groups': {
+      const groups = num(params?.['groups']);
+      const each = num(params?.['each']);
+      return groups <= 6 && o.kind !== 'mult' ? (
+        <EqualGroups groups={groups} each={each} />
+      ) : (
+        <DotArray rows={groups} cols={each} labels />
+      );
+    }
+    case 'coins':
+      return <CoinHint problem={problem} />;
+    case 'ruler':
+      return o.kind === 'ruler' ? (
+        <Ruler length={o.length} unit={o.unit} marked />
+      ) : (
+        <Ruler
+          length={num(params?.['length'], 4)}
+          unit={o.kind === 'estimate' ? o.unit : 'in'}
+          marked
+        />
+      );
+    case 'fraction-bars': {
+      if (params?.['an'] !== undefined) {
+        return (
+          <div className="flex w-full flex-col items-center gap-1">
+            <FractionBar n={num(params['an'])} d={num(params['ad'])} />
+            <FractionBar n={num(params['bn'])} d={num(params['bd'])} />
+          </div>
+        );
+      }
+      const n = num(params?.['n']);
+      const d = num(params?.['d']);
+      const scale = num(params?.['scale'], 1);
+      return (
+        <div className="flex w-full flex-col items-center gap-1">
+          <FractionBar n={n} d={d} />
+          {scale > 1 && <FractionBar n={n * scale} d={d * scale} />}
+        </div>
+      );
+    }
+    case 'round-line':
+      return (
+        <RoundLine low={num(params?.['low'])} high={num(params?.['high'])} n={num(params?.['n'])} />
+      );
+    case 'area-grid':
+      if (o.kind !== 'area') return null;
+      return o.ask === 'area' ? (
+        <AreaGrid w={o.w} h={o.h} count />
+      ) : (
+        <p className="text-3xl font-extrabold tabular-nums">
+          {o.w} + {o.h} + {o.w} + {o.h}
+        </p>
+      );
+    case 'steps':
+      return <Steps problem={problem} />;
     case 'clock': {
+      if (o.kind === 'am-pm') {
+        return <p className="text-2xl font-extrabold">☀️ a.m. · 🌙 p.m.</p>;
+      }
+      if (o.kind === 'elapsed') {
+        const end = { hour: num(params?.['hour']), minute: num(params?.['minute']) };
+        return (
+          <Clock
+            {...end}
+            hands={reveal}
+            highlight={clockNumbers(end.hour, end.minute)}
+            size={110}
+          />
+        );
+      }
       if (o.kind !== 'clock') return null;
       return reveal ? (
         <Clock hour={o.hour} minute={o.minute} size={110} />

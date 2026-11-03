@@ -2,13 +2,13 @@
 
 A private, offline math practice app for a 6-year-old. The spec is `MATH_APP_BRIEF.md`, and `CLAUDE.md` holds the working rules and decisions.
 
-**Status:** Phases 0–4 are done: the installable shell, the full Grade 1 engine, the child's Daily Quest, the engagement systems, and the PIN-gated parent dashboard with its teacher report. Phase 5 (Grades 2 and 3, free play, settings, reminders) comes next.
+**Status:** Phases 0–5 are done: the installable shell, all 38 skills across Grades 1–3, the child's Daily Quest, the engagement systems, the PIN-gated parent dashboard with its teacher report, free play, settings and reminders. Phase 6 (cloud sync) is a later, optional step.
 
 ## Grown-ups
 
 On Home, tap the child's picture, then the gear. The first visit asks a multiplication question and sets a 4-digit PIN.
 
-The dashboard shows the weekly recap, skills, the fact fluency grid, goals and cheers, the teacher report, children, and backup. All progress lives only on the device, so save a backup now and then. The app reminds you.
+The dashboard shows the weekly recap, skills, the fact fluency grid, goals and cheers, the teacher report, children, settings, and backup. All progress lives only on the device, so save a backup now and then. The app reminds you.
 
 ## Setup
 
@@ -47,7 +47,7 @@ npm run lint
 npm run typecheck
 ```
 
-`packages/engine/src/audit.test.ts` recomputes 2,500 answers per skill with solver code that shares nothing with the generators.
+`packages/engine/src/audit.test.ts` recomputes 2,500 answers for each of the 38 skills with solver code that shares nothing with the generators.
 
 ## Checking on a real iPhone
 
@@ -63,4 +63,7 @@ Playwright only approximates Safari, so these need the real device:
 8. Open a certificate on the trophy wall and tap print from the installed app. If nothing happens, that's a limit of the Home Screen app.
 9. In the dashboard, open Teacher report and tap Print. Then try Share or save, and print or email the file. One of the two has to work; note which.
 10. In Goals & cheers, record a voice message. Allow the microphone, listen back, and send it. Start the next quest: it should play right away, with the ring/silent switch both ways.
-11. In Backup, tap Save backup and save to Files. Delete the app, reinstall it, set it up, and restore the file. All progress and the voice message should return.
+11. In Settings, set a math time and tap Add to calendar. It should offer to add a daily event with an alert. If the file won't open, try sending it to yourself by email or Messages.
+12. In Settings, try the Voice list. It should show several voices and speak a sample.
+13. After a quest, play Fact Blitz. Watch for lag between tapping and the next problem.
+14. In Backup, tap Save backup and save to Files. Delete the app, reinstall it, set it up, and restore the file. All progress and the voice message should return.
