@@ -1,0 +1,184 @@
+{
+  "childId": "demo-child",
+  "name": "Sam",
+  "skillStates": {
+    "1.counting": {
+      "childId": "demo-child",
+      "skillId": "1.counting",
+      "mastery": 70,
+      "attempts": 0,
+      "difficulty": 1,
+      "errorCounts": {},
+      "fastStreak": 0,
+      "wrongStreak": 0,
+      "questsOnSkill": 0,
+      "updatedAt": 0,
+      "placedOut": true
+    },
+    "1.ten-frame": {
+      "childId": "demo-child",
+      "skillId": "1.ten-frame",
+      "mastery": 70,
+      "attempts": 0,
+      "difficulty": 1,
+      "errorCounts": {},
+      "fastStreak": 0,
+      "wrongStreak": 0,
+      "questsOnSkill": 0,
+      "updatedAt": 0,
+      "placedOut": true
+    },
+    "1.add-within-10": {
+      "childId": "demo-child",
+      "skillId": "1.add-within-10",
+      "mastery": 62,
+      "attempts": 34,
+      "difficulty": 3,
+      "errorCounts": {},
+      "fastStreak": 0,
+      "wrongStreak": 0,
+      "questsOnSkill": 0,
+      "updatedAt": 0
+    },
+    "1.shapes": {
+      "childId": "demo-child",
+      "skillId": "1.shapes",
+      "mastery": 45,
+      "attempts": 9,
+      "difficulty": 2,
+      "errorCounts": {},
+      "fastStreak": 0,
+      "wrongStreak": 0,
+      "questsOnSkill": 0,
+      "updatedAt": 0
+    }
+  },
+  "factCards": [
+    {
+      "childId": "demo-child",
+      "factId": "add:3+4",
+      "box": 0,
+      "dueDate": "2026-11-08",
+      "history": [
+        {
+          "at": 1,
+          "correct": false,
+          "responseMs": 2000
+        }
+      ],
+      "updatedAt": 1,
+      "lastResponseMs": 2000
+    },
+    {
+      "childId": "demo-child",
+      "factId": "add:5+5",
+      "box": 1,
+      "dueDate": "2026-11-09",
+      "history": [
+        {
+          "at": 1,
+          "correct": true,
+          "responseMs": 2300
+        }
+      ],
+      "updatedAt": 1,
+      "lastResponseMs": 2300
+    },
+    {
+      "childId": "demo-child",
+      "factId": "add:6+2",
+      "box": 1,
+      "dueDate": "2026-11-09",
+      "history": [
+        {
+          "at": 1,
+          "correct": true,
+          "responseMs": 2600
+        }
+      ],
+      "updatedAt": 1,
+      "lastResponseMs": 2600
+    },
+    {
+      "childId": "demo-child",
+      "factId": "add:7+1",
+      "box": 0,
+      "dueDate": "2026-11-08",
+      "history": [
+        {
+          "at": 1,
+          "correct": false,
+          "responseMs": 2900
+        }
+      ],
+      "updatedAt": 1,
+      "lastResponseMs": 2900
+    },
+    {
+      "childId": "demo-child",
+      "factId": "add:2+8",
+      "box": 0,
+      "dueDate": "2026-11-08",
+      "history": [
+        {
+          "at": 1,
+          "correct": true,
+          "responseMs": 3200
+        }
+      ],
+      "updatedAt": 1,
+      "lastResponseMs": 3200
+    },
+    {
+      "childId": "demo-child",
+      "factId": "add:4+4",
+      "box": 0,
+      "dueDate": "2026-11-08",
+      "history": [
+        {
+          "at": 1,
+          "correct": true,
+          "responseMs": 3500
+        }
+      ],
+      "updatedAt": 1,
+      "lastResponseMs": 3500
+    },
+    {
+      "childId": "demo-child",
+      "factId": "add:9+0",
+      "box": 0,
+      "dueDate": "2026-11-08",
+      "history": [
+        {
+          "at": 1,
+          "correct": false,
+          "responseMs": 3800
+        }
+      ],
+      "updatedAt": 1,
+      "lastResponseMs": 3800
+    }
+  ],
+  "wallet": {
+    "childId": "demo-child",
+    "coins": 180,
+    "lifetimeCoins": 240,
+    "updatedAt": 0
+  },
+  "description": "ten days in, partway through addition facts",
+  "today": "2026-11-11",
+  "questsCompleted": 10,
+  "streak": {
+    "childId": "demo-child",
+    "current": 9,
+    "best": 9,
+    "shields": 1,
+    "parentShields": 0,
+    "countedDates": [],
+    "excusedDates": [],
+    "perfectWeeks": [],
+    "updatedAt": 0,
+    "lastCountedDate": "2026-11-10"
+  }
+}

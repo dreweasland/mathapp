@@ -1,0 +1,27 @@
+{
+  "childId": "demo-child",
+  "name": "Sam",
+  "skillStates": {},
+  "factCards": [],
+  "wallet": {
+    "childId": "demo-child",
+    "coins": 0,
+    "lifetimeCoins": 0,
+    "updatedAt": 0
+  },
+  "description": "first quest, placed past counting and ten-frames",
+  "today": "2026-11-02",
+  "questsCompleted": 0,
+  "placement": ["1.counting", "1.ten-frame"],
+  "streak": {
+    "childId": "demo-child",
+    "current": 0,
+    "best": 0,
+    "shields": 0,
+    "parentShields": 0,
+    "countedDates": [],
+    "excusedDates": [],
+    "perfectWeeks": [],
+    "updatedAt": 0
+  }
+}

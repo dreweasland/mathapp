@@ -1,0 +1,8 @@
+dist
+coverage
+dev-dist
+playwright-report
+test-results
+package-lock.json
+MATH_APP_BRIEF.md
+CLAUDE.md
