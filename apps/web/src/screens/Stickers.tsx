@@ -1,6 +1,7 @@
 import { COLLECTIBLE_SETS, artFor } from '@mathapp/content';
 import { activeSet } from '@mathapp/engine';
 import { useGame } from '../game/GameProvider';
+import { ItemArt } from '../ui/Critters';
 import { PlaceFrame } from '../ui/PlaceFrame';
 
 /** A sticker sheet. Every animal shows as a shadow, so a child can see exactly what's left. */
@@ -36,9 +37,16 @@ export function Stickers() {
                     onClick={() =>
                       actions.say(owned ? { key: `item.${id}` } : { key: 'sticker.waiting' })
                     }
-                    className={`tap text-4xl ${owned ? '' : 'border-dashed !shadow-none'}`}
+                    className={`tap flex-col gap-0.5 px-1 py-1 ${owned ? '' : 'border-dashed !shadow-none'}`}
                   >
-                    <span className={owned ? '' : 'silhouette'}>{artFor(id)?.emoji}</span>
+                    <span className={`inline-flex ${owned ? '' : 'silhouette'}`}>
+                      <ItemArt id={id} emoji={artFor(id)?.emoji} size={52} />
+                    </span>
+                    {owned && (
+                      <span aria-hidden="true" className="text-[11px] leading-none font-extrabold">
+                        {artFor(id)?.name}
+                      </span>
+                    )}
                   </button>
                 );
               })}

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useGame } from '../game/GameProvider';
 import { BigButton } from '../ui/BigButton';
 import { Icon } from '../ui/icons';
+import { ItemArt } from '../ui/Critters';
 import { Motion } from '../ui/Motion';
 
 /** Shown over Home or the celebration. The contents were banked when the chest was earned. */
@@ -33,7 +34,7 @@ export function ChestReveal() {
               className="flex flex-col items-center"
             >
               <span className="card flex h-40 w-40 items-center justify-center text-8xl">
-                {art.emoji}
+                <ItemArt id={reward.itemId ?? ''} emoji={art.emoji} size={120} />
               </span>
               <span className="mt-2 text-3xl font-black">{art.name}</span>
             </span>
