@@ -87,6 +87,35 @@ const HEADS: Record<string, ReactNode> = {
   ),
 };
 
+/** Words for each picture, for screen readers and for buttons a grown-up taps. */
+export const AVATAR_NAMES: Record<string, string> = {
+  '🐻': 'bear',
+  '🦊': 'fox',
+  '🐰': 'rabbit',
+  '🐼': 'panda',
+  '🐯': 'tiger',
+  '🐸': 'frog',
+};
+export const avatarName = (value: string) => AVATAR_NAMES[value] ?? value;
+
+/** A child's picture and name, side by side, for lists and headings. */
+export function AvatarName({
+  avatar,
+  name,
+  size = 26,
+}: {
+  avatar: string;
+  name: string;
+  size?: number;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 align-middle">
+      <Avatar value={avatar} size={size} />
+      {name}
+    </span>
+  );
+}
+
 export function Avatar({ value, size = 40 }: { value: string | undefined; size?: number }) {
   const head = value ? HEADS[value] : undefined;
   if (!head) {

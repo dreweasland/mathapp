@@ -18,6 +18,7 @@ import { Avatar } from '../ui/Avatar';
 import { BearSays } from '../ui/BearSays';
 import { BigButton } from '../ui/BigButton';
 import { Icon, type IconName } from '../ui/icons';
+import { Picture } from '../ui/Pictures';
 import { Chest } from '../visuals/Chest';
 import { needsInstall } from './Setup';
 
@@ -295,9 +296,7 @@ function GoalBar() {
       onClick={() => actions.say(line)}
       className={`tap w-full gap-2 px-3 ${reached ? 'tap-answer' : ''}`}
     >
-      <span aria-hidden="true" className="text-3xl">
-        {goal.imageKey}
-      </span>
+      <Picture value={goal.imageKey} size={36} />
       <span className="h-4 flex-1 overflow-hidden rounded-full border-2 border-ink bg-white">
         <span
           data-testid="goal-fill"

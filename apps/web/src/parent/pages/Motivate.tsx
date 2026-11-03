@@ -10,9 +10,8 @@ import {
 import { useState } from 'react';
 import type { PageProps } from '../ParentApp';
 import { Recorder } from '../Recorder';
+import { CHEER_PICTURES, GOAL_PICTURES, Picture, pictureName } from '../../ui/Pictures';
 
-const PICTURES = ['🎬', '🍦', '🍕', '🏞️', '🎮', '📚', '🧸', '🚲'];
-const CHEER_EMOJI = ['🌟', '🎉', '💪', '❤️', '👏', '🚀', '🐻', '🌈'];
 const UNITS: { value: Goal['unit']; label: string }[] = [
   { value: 'quests', label: 'daily quests' },
   { value: 'skills', label: 'new badges' },
@@ -24,7 +23,7 @@ function GoalForm({ view, today, services, reload }: PageProps) {
   const [unit, setUnit] = useState<Goal['unit']>('quests');
   const [target, setTarget] = useState(5);
   const [reward, setReward] = useState('');
-  const [image, setImage] = useState(PICTURES[0] as string);
+  const [image, setImage] = useState(GOAL_PICTURES[0]?.[0] as string);
   const [thisWeek, setThisWeek] = useState(true);
   const endDate = addDays(weekStart(today), 6);
   const daysLeft = daysBetween(today, endDate) + 1;
@@ -109,16 +108,16 @@ function GoalForm({ view, today, services, reload }: PageProps) {
         </p>
       )}
       <div className="flex flex-wrap gap-1" role="group" aria-label="Picture">
-        {PICTURES.map((p) => (
+        {GOAL_PICTURES.map(([p, name]) => (
           <button
             key={p}
             type="button"
-            aria-label={`picture ${p}`}
+            aria-label={`picture ${name}`}
             aria-pressed={p === image}
-            className={`p-btn text-xl ${p === image ? 'p-btn-main' : ''}`}
+            className={`p-btn ${p === image ? 'p-btn-main' : ''}`}
             onClick={() => setImage(p)}
           >
-            {p}
+            <Picture value={p} size={30} />
           </button>
         ))}
       </div>
@@ -139,8 +138,8 @@ function CurrentGoal({ goal, services, reload }: { goal: Goal } & PageProps) {
   const reached = isReached(goal);
   return (
     <div data-testid="current-goal">
-      <p className="text-lg font-bold">
-        {goal.imageKey} {goal.rewardText}
+      <p className="flex items-center gap-2 text-lg font-bold">
+        <Picture value={goal.imageKey} size={30} /> {goal.rewardText}
       </p>
       <p>
         {goal.progress} of {goal.target} {UNIT_NAME[goal.unit]}
@@ -204,8 +203,8 @@ export function Motivate(props: PageProps) {
         {past.length > 0 && (
           <ul className="mt-2 text-sm" data-testid="past-goals">
             {past.map((g) => (
-              <li key={g.id}>
-                {g.imageKey} {g.rewardText}:{' '}
+              <li key={g.id} className="flex items-center gap-1.5">
+                <Picture value={g.imageKey} size={20} /> {g.rewardText}:{' '}
                 {g.delivered ? 'delivered' : `${g.progress} of ${g.target}`}
               </li>
             ))}
@@ -219,15 +218,15 @@ export function Motivate(props: PageProps) {
           {child.name} gets one at the start of the next quest. Send a picture or your voice.
         </p>
         <div className="mb-2 flex flex-wrap gap-1">
-          {CHEER_EMOJI.map((emoji) => (
+          {CHEER_PICTURES.map(([emoji, name]) => (
             <button
               key={emoji}
               type="button"
-              aria-label={`send ${emoji}`}
-              className="p-btn text-xl"
+              aria-label={`send ${name}`}
+              className="p-btn"
               onClick={() => void send({ emoji })}
             >
-              {emoji}
+              <Picture value={emoji} size={30} />
             </button>
           ))}
         </div>
@@ -238,7 +237,15 @@ export function Motivate(props: PageProps) {
             <ul data-testid="cheers-waiting">
               {waiting.map((c) => (
                 <li key={c.id} className="flex items-center justify-between">
-                  <span>{c.emoji ?? 'Voice message'}</span>
+                  <span className="flex items-center gap-1.5">
+                    {c.emoji ? (
+                      <>
+                        <Picture value={c.emoji} size={24} /> {pictureName(c.emoji)}
+                      </>
+                    ) : (
+                      'Voice message'
+                    )}
+                  </span>
                   <button
                     type="button"
                     className="p-link"

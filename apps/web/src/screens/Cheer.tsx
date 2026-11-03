@@ -1,6 +1,7 @@
 import { useGame } from '../game/GameProvider';
 import { BigButton } from '../ui/BigButton';
 import { Icon } from '../ui/icons';
+import { Picture } from '../ui/Pictures';
 import { MyMascot } from '../ui/MyMascot';
 
 /** A grown-up's message, before the next quest. Tap the picture to hear it again. */
@@ -22,7 +23,9 @@ export function Cheer() {
         onClick={actions.playCheer}
       >
         {cheer?.emoji ? (
-          <span className="pop">{cheer.emoji}</span>
+          <span className="pop">
+            <Picture value={cheer.emoji} size={110} />
+          </span>
         ) : (
           <span className="pop flex flex-col items-center gap-1 text-lg font-extrabold">
             <Icon name="speaker" size={72} />

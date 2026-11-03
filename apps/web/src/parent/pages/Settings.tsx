@@ -4,6 +4,7 @@ import { APP_NAME } from '../../config';
 import type { PageProps } from '../ParentApp';
 import { reminderCalendar } from '../reminder';
 import { saveFile } from '../saveFile';
+import { AvatarName } from '../../ui/Avatar';
 
 const englishVoices = () =>
   typeof speechSynthesis === 'undefined'
@@ -89,7 +90,7 @@ export function Settings({ view, today, services, reload }: PageProps) {
     <>
       <section className="p-card flex flex-col gap-3" data-testid="settings">
         <h2 className="font-extrabold">
-          {child.avatar} {child.name}
+          <AvatarName avatar={child.avatar} name={child.name} />
         </h2>
         <div>
           <label className="font-bold">

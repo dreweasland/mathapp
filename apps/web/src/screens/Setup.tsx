@@ -1,7 +1,7 @@
 import type { ChildProfile, DailyGoal } from '@mathapp/engine';
 import { useState, type ReactNode } from 'react';
 import { APP_NAME } from '../config';
-import { Avatar } from '../ui/Avatar';
+import { Avatar, avatarName } from '../ui/Avatar';
 import { Icon } from '../ui/icons';
 import { Mascot } from '../ui/Mascot';
 
@@ -89,7 +89,7 @@ export function Setup({
           <button
             key={a}
             type="button"
-            aria-label={`avatar ${a}`}
+            aria-label={`avatar ${avatarName(a)}`}
             aria-pressed={a === avatar}
             onClick={() => setAvatar(a)}
             className={`tap min-h-20 ${a === avatar ? 'tap-primary' : ''}`}

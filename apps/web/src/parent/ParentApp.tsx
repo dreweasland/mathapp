@@ -11,6 +11,7 @@ import { Report } from './pages/Report';
 import { Settings } from './pages/Settings';
 import { Skills } from './pages/Skills';
 import type { ParentServices } from './services';
+import { AvatarName } from '../ui/Avatar';
 
 const PAGES = [
   { id: 'skills', label: 'Skills', hint: 'Mastery, trend and usual mistakes' },
@@ -80,7 +81,7 @@ export function ParentApp({ services, onExit }: { services: ParentServices; onEx
                 className={`p-btn ${child.id === childId ? 'p-btn-main' : ''}`}
                 onClick={() => void reload(child.id)}
               >
-                {child.avatar} {child.name}
+                <AvatarName avatar={child.avatar} name={child.name} size={22} />
               </button>
             ))}
           </div>

@@ -110,7 +110,7 @@ export async function setUpChild(page: Page, onSetup = false) {
     await page.getByRole('button', { name: 'Continue in Safari for now' }).click();
   }
   await page.getByLabel("Child's name").fill('Sam');
-  await page.getByRole('button', { name: 'avatar 🦊' }).click();
+  await page.getByRole('button', { name: 'avatar fox' }).click();
   await page.getByRole('button', { name: 'done' }).click();
   await page.getByRole('button', { name: 'start warm-up' }).click();
   // Placement ends at the first skill with two misses, so this reaches Home in a few taps.

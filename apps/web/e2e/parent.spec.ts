@@ -147,14 +147,14 @@ test('a cheer plays before the next quest, once', async ({ page }) => {
   await setUpChild(page);
   await openDashboard(page);
   await page.getByRole('button', { name: /^Goals & cheers/ }).click();
-  await page.getByRole('button', { name: 'send 🚀' }).click();
-  await expect(page.getByTestId('cheers-waiting')).toContainText('🚀');
+  await page.getByRole('button', { name: 'send rocket' }).click();
+  await expect(page.getByTestId('cheers-waiting')).toContainText('rocket');
   await page.getByRole('button', { name: '‹ Back' }).click();
   await leave(page);
 
   await page.reload();
   await page.getByRole('button', { name: 'start quest' }).click();
-  await expect(page.getByTestId('cheer')).toContainText('🚀');
+  await expect(page.getByTestId('cheer').locator('[data-picture="🚀"]')).toBeVisible();
   await expect.poll(() => said(page)).toContainEqual('A cheer from your grown-up!');
   await page.getByRole('button', { name: 'next' }).click();
   await expect(page.getByRole('button', { name: "Let's go", exact: true })).toBeVisible();
@@ -216,11 +216,13 @@ test('a second child gets their own profile, and siblings pick by picture', asyn
   await page.getByRole('button', { name: /^Children/ }).click();
   await page.getByTestId('add-child').getByLabel('Name').fill('Kim');
   await expect(
-    page.getByTestId('add-child').getByRole('button', { name: 'picture 🦊' }),
+    page.getByTestId('add-child').getByRole('button', { name: 'picture fox' }),
   ).toBeDisabled();
-  await page.getByTestId('add-child').getByRole('button', { name: 'picture 🐼' }).click();
+  await page.getByTestId('add-child').getByRole('button', { name: 'picture panda' }).click();
   await page.getByRole('button', { name: 'Add child' }).click();
-  await expect(page.getByRole('button', { name: /🐼 Kim/ })).toBeVisible();
+  const kim = page.getByRole('button', { name: 'Kim', exact: true });
+  await expect(kim).toBeVisible();
+  await expect(kim.locator('svg')).toBeVisible();
   await page.getByRole('button', { name: '‹ Back' }).click();
   await leave(page);
 
@@ -478,7 +480,7 @@ for (const viewport of HOME_VIEWS) {
       expect(await unreachable(page)).toEqual([]);
       await createPin(page);
       await page.getByRole('button', { name: /^Goals & cheers/ }).click();
-      await page.getByRole('button', { name: 'send 🚀' }).click();
+      await page.getByRole('button', { name: 'send rocket' }).click();
       await expect(page.getByTestId('cheers-waiting')).toBeVisible();
       await page.getByRole('button', { name: '‹ Back' }).click();
       await leave(page);

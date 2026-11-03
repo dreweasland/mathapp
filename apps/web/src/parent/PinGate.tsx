@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Icon } from '../ui/icons';
 import type { FamilyRepository } from '../db/repositories/family';
 import { PIN_LENGTH, grownUpQuestion, hashPin, newSalt } from './pin';
 
@@ -41,8 +42,8 @@ function Frame({
     <main className="screen items-center justify-center-safe gap-4 overflow-y-auto text-center">
       <div className="flex w-full max-w-xs items-center justify-between">
         <h1 className="text-2xl font-extrabold">{title}</h1>
-        <button type="button" aria-label="close" className="tap text-2xl" onClick={onExit}>
-          ✕
+        <button type="button" aria-label="close" className="tap" onClick={onExit}>
+          <Icon name="close" size={26} />
         </button>
       </div>
       {children}

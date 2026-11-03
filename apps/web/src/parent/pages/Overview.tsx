@@ -1,3 +1,4 @@
+import { AvatarName } from '../../ui/Avatar';
 import {
   MAX_SHIELDS,
   activityBetween,
@@ -59,7 +60,7 @@ export function Overview({ view, today, services, reload }: PageProps) {
       )}
       <section className="p-card" data-testid="today">
         <h2 className="font-extrabold">
-          {child.avatar} {child.name} today
+          <AvatarName avatar={child.avatar} name={`${child.name} today`} />
         </h2>
         <p>
           {todayQuest ? 'Daily quest done.' : 'Daily quest not done yet.'}{' '}

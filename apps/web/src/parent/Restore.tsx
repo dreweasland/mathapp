@@ -70,9 +70,7 @@ export function Restore({
         <div className="flex flex-col gap-2" data-testid="restore-confirm">
           <p>
             Saved {shortDate(picked.summary.exportedAt)}:{' '}
-            {picked.summary.children
-              .map((c) => `${c.avatar} ${c.name} (${c.quests} quests)`)
-              .join(', ')}
+            {picked.summary.children.map((c) => `${c.name} (${c.quests} quests)`).join(', ')}
           </p>
           <p className="font-bold">
             This replaces everything on this device, for every child. Anything newer here will be

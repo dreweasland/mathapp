@@ -2,6 +2,7 @@ import { ALL_SKILLS } from '@mathapp/content';
 import type { ChildProfile, DailyGoal } from '@mathapp/engine';
 import { useState } from 'react';
 import { AVATARS, DAILY_GOALS } from '../../screens/Setup';
+import { Avatar, AvatarName, avatarName } from '../../ui/Avatar';
 import type { PageProps } from '../ParentApp';
 
 function Avatars({
@@ -19,13 +20,13 @@ function Avatars({
         <button
           key={a}
           type="button"
-          aria-label={`picture ${a}`}
+          aria-label={`picture ${avatarName(a)}`}
           aria-pressed={a === value}
           disabled={taken.includes(a)}
-          className={`p-btn text-xl ${a === value ? 'p-btn-main' : ''}`}
+          className={`p-btn ${a === value ? 'p-btn-main' : ''}`}
           onClick={() => onPick(a)}
         >
-          {a}
+          <Avatar value={a} size={30} />
         </button>
       ))}
     </div>
@@ -44,7 +45,7 @@ function Edit({ view, services, reload, others }: PageProps & { others: ChildPro
   return (
     <section className="p-card flex flex-col gap-2" data-testid="edit-child">
       <h2 className="font-extrabold">
-        {child.avatar} {child.name}
+        <AvatarName avatar={child.avatar} name={child.name} />
       </h2>
       <label className="font-bold">
         Name

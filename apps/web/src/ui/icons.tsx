@@ -136,6 +136,7 @@ const PATHS = {
       <path d="M14 25 L21 32 L34 17" fill="none" {...S} strokeWidth={5} />
     </>
   ),
+  close: <path d="M13 13 L35 35 M35 13 L13 35" fill="none" {...S} strokeWidth={5} />,
   play: <path d="M14 8 L40 24 L14 40 Z" fill={INK} {...S} />,
   arrow: <path d="M10 24 H36 M26 13 L37 24 L26 35" fill="none" {...S} strokeWidth={5} />,
   back: <path d="M38 24 H12 M22 13 L11 24 L22 35" fill="none" {...S} strokeWidth={5} />,
