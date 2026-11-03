@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  mapStatus,
   isUnlocked,
   refreshUnlocks,
   selectFrontier,
@@ -11,7 +12,7 @@ import {
 import { newSkillState } from './mastery';
 import type { SkillState } from './state';
 import { def, SKILLS } from './testing/skills';
-import type { SkillStates } from './types';
+import type { SkillDef, SkillStates } from './types';
 
 const st = (id: string, over: Partial<SkillState> = {}): SkillState => ({
   ...newSkillState('c', id),
@@ -138,5 +139,30 @@ describe('selectToday', () => {
   });
   it('is empty with no skills at all', () => {
     expect(selectToday([], {}, 0)).toBeUndefined();
+  });
+});
+
+describe('mapStatus', () => {
+  const def = (id: string, order: number, prerequisites: string[] = []): SkillDef =>
+    ({ id, grade: 1, order, prerequisites }) as SkillDef;
+  const skills = [def('a', 1), def('b', 2, ['a']), def('c', 3, ['b']), def('d', 4)];
+  const state = (over = {}) => ({ ...newSkillState('c', 'x'), ...over });
+
+  it('marks the next skill as current and the rest by what is open', () => {
+    expect(skills.map((s) => mapStatus(s, skills, {}))).toEqual([
+      'current',
+      'locked',
+      'locked',
+      'open',
+    ]);
+  });
+  it('keeps a badge on the map even if mastery later drops', () => {
+    const states = { a: state({ masteredAt: 1, mastery: 10 }) };
+    expect(mapStatus(skills[0] as SkillDef, skills, states)).toBe('mastered');
+  });
+  it('shows placed-out skills as passed, not mastered', () => {
+    const states = { a: state({ placedOut: true, mastery: 70 }) };
+    expect(mapStatus(skills[0] as SkillDef, skills, states)).toBe('passed');
+    expect(mapStatus(skills[1] as SkillDef, skills, states)).toBe('current');
   });
 });

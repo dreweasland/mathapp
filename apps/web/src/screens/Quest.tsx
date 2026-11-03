@@ -2,7 +2,7 @@ import { currentItem, currentSection } from '@mathapp/engine';
 import { useGame } from '../game/GameProvider';
 import { ProblemView } from '../question/ProblemView';
 import { BigButton } from '../ui/BigButton';
-import { Mascot } from '../ui/Mascot';
+import { MyMascot } from '../ui/MyMascot';
 
 const ICON = { warmup: '⛽', skill: '🗺️', challenge: '⭐' } as const;
 
@@ -49,7 +49,7 @@ export function Quest() {
         <span className="pop text-8xl" aria-hidden="true">
           {icon}
         </span>
-        <Mascot mood="happy" size={130} />
+        <MyMascot mood="happy" size={130} />
         <BigButton
           label="go"
           className="min-h-28 w-full max-w-md text-6xl"
@@ -67,7 +67,7 @@ export function Quest() {
         <span className="pop text-8xl" aria-hidden="true">
           ⭐
         </span>
-        <Mascot mood="happy" size={130} />
+        <MyMascot mood="happy" size={130} />
         <div className="flex w-full max-w-md gap-4">
           <BigButton label="yes" className="flex-1" onClick={actions.acceptChallenge}>
             ⭐ ✓
@@ -97,7 +97,7 @@ export function Quest() {
           total={section.items.length}
           icon={icon}
         />
-        <Mascot mood={mood} size={56} />
+        <MyMascot mood={mood} size={56} />
         <BigButton label="say it again" tone="quiet" className="!px-3" onClick={actions.replay}>
           🔊
         </BigButton>

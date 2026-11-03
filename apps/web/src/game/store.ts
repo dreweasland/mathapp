@@ -1,32 +1,54 @@
-import { GRADE_1_SKILLS, answerSpeech, render } from '@mathapp/content';
 import {
+  COLLECTIBLE_SETS,
+  FIRST_ACCESSORY,
+  GRADE_1_SKILLS,
+  answerSpeech,
+  cosmeticFor,
+  render,
+} from '@mathapp/content';
+import {
+  MISSION_COINS,
   acceptChallenge,
   advance,
+  allMissionsDone,
+  applyMissionEvent,
   applyPlacement,
+  bankMissionChest,
+  bankQuestChests,
+  beatsFastTime,
   beginSection,
   buildDailyQuest,
+  buyCosmetic,
   classifyError,
   completeDailyQuest,
   currentItem,
   currentSection,
   earnCoins,
   finishWorkedExample,
+  generateMissions,
   hashSeed,
   isCorrect,
+  mulberry32,
   nextProbe,
+  openNextChest,
   placementRng,
   reconcileStreak,
   recordProbe,
   refreshUnlocks,
   resumeRun,
+  selectToday,
   settleItem,
   skipChallenge,
   startPlacement,
   startRun,
   submitAnswer,
+  toggleCosmetic,
   COINS,
   type Attempt,
+  type ChestReward,
   type ChildProfile,
+  type Mission,
+  type MissionEvent,
   type PlacementState,
   type Problem,
   type QuestRun,
@@ -47,7 +69,25 @@ import type {
 import type { NewChild, childrenRepository } from '../db/repositories/children';
 import { localDate } from './today';
 
-export type Screen = 'loading' | 'setup' | 'placement' | 'home' | 'quest' | 'celebrate';
+export type Screen =
+  | 'loading'
+  | 'setup'
+  | 'placement'
+  | 'home'
+  | 'quest'
+  | 'celebrate'
+  | 'map'
+  | 'trophies'
+  | 'stickers'
+  | 'shop';
+
+const PLACE_LINE = {
+  map: 'nav.map',
+  trophies: 'nav.trophies',
+  stickers: 'nav.stickers',
+  shop: 'nav.shop',
+} as const;
+export type Place = keyof typeof PLACE_LINE;
 export type Mood = 'idle' | 'happy' | 'thinking' | 'cheer';
 
 /** A correct answer holds on screen this long, so the rhythm stays quick. */
@@ -82,6 +122,15 @@ export interface GameState {
   /** Speech from settling missed days, said once on the home screen. */
   homeNote?: Speech;
   celebration: Speech[];
+  missions: Mission[];
+  /** Badges earned in this quest, for the celebration. */
+  newBadges: string[];
+  /** Said when the celebration ends: warm on a rough day too. */
+  farewell?: Speech;
+  /** The chest being shown right now. */
+  openedChest?: ChestReward;
+  /** A save failed, so a grown-up should know progress may not be stored. */
+  saveFailed: boolean;
   placement?: { state: PlacementState; problem: Problem; asked: number };
 }
 
@@ -93,6 +142,9 @@ export function createGame(deps: GameDeps) {
     mood: 'idle',
     todayDone: false,
     celebration: [],
+    missions: [],
+    newBadges: [],
+    saveFailed: false,
   }));
   const get = store.getState;
   const set = store.setState;
@@ -100,7 +152,12 @@ export function createGame(deps: GameDeps) {
   /** Saves run in order, off the tap path, so feedback never waits on storage. */
   let writes: Promise<void> = Promise.resolve();
   const save = (change: ProgressChange) => {
-    writes = writes.then(() => repo.save(change)).catch((error) => console.error(error));
+    writes = writes
+      .then(() => repo.save(change))
+      .catch((error) => {
+        console.error(error);
+        set({ saveFailed: true });
+      });
   };
 
   /** The response clock starts when the prompt finishes, so listening isn't counted. */
@@ -180,13 +237,20 @@ export function createGame(deps: GameDeps) {
     };
     delete ended.run;
     save({ session: ended });
+    const farewell: Speech = { key: roughDay ? 'quest.rough-day' : 'quest.done' };
     const lines: Speech[] = [
       ...(skipped ? [{ key: 'quest.challenge-skip' }] : []),
       { key: 'quest.coins', params: { coins: run.coins } },
       ...get().celebration,
-      { key: roughDay ? 'quest.rough-day' : 'quest.done' },
+      ...get().newBadges.map((id) => ({
+        key: 'badge.earned',
+        params: { badge: render(`badge.${id}`) },
+      })),
+      ...(allMissionsDone(get().missions) ? [{ key: 'mission.all-done' }] : []),
+      // With a chest waiting, the goodbye comes after it's open.
+      get().progress?.inventory.unopened.length ? { key: 'chest.tap' } : farewell,
     ];
-    set({ session: ended, screen: 'celebrate', mood: 'cheer', todayDone: true });
+    set({ session: ended, screen: 'celebrate', mood: 'cheer', todayDone: true, farewell });
     play('cheer');
     sayInOrder(lines);
   }
@@ -228,32 +292,93 @@ export function createGame(deps: GameDeps) {
       quest: run.quest,
       at: now(),
     });
-    set({
-      child: done.child,
-      progress: { ...data, streak: done.streak, wallet: done.wallet, states: done.states },
-      celebration: done.events.map(eventLine).filter((l): l is Speech => l !== undefined),
-    });
-    const session = need(get().session);
-    set({ session: { ...session, completedQuest: true } });
-    const todaySkill = done.states[run.quest.todaySkillId];
-    return {
-      child: done.child,
+    const bank = bankQuestChests({
       streak: done.streak,
       wallet: done.wallet,
-      skills: todaySkill ? [todaySkill] : [],
-    };
+      inventory: data.inventory,
+      childId: done.child.id,
+      date: run.quest.date,
+      dayNumber: run.quest.dayNumber,
+      events: done.events,
+      sets: COLLECTIBLE_SETS,
+      firstAccessory: FIRST_ACCESSORY,
+      at: now(),
+    });
+    set({
+      child: done.child,
+      progress: { ...data, ...bank, states: done.states },
+      celebration: done.events.map(eventLine).filter((l): l is Speech => l !== undefined),
+      session: { ...need(state.session), completedQuest: true },
+    });
+    const todaySkill = done.states[run.quest.todaySkillId];
+    return { child: done.child, skills: todaySkill ? [todaySkill] : [] };
+  }
+
+  /** Advances missions, pays any just finished, and banks the bonus chest for all three. */
+  function advanceMissions(events: MissionEvent[]): { change: ProgressChange; coins: number } {
+    const before = get().missions;
+    const at = now();
+    const next = events.reduce((list, event) => applyMissionEvent(list, event, at), before);
+    if (next === before || next.every((m, i) => m === before[i])) return { change: {}, coins: 0 };
+    const finished = next.filter((m, i) => m.done && !before[i]?.done);
+    const coins = finished.reduce((sum, m) => sum + MISSION_COINS[m.slot], 0);
+    const data = need(get().progress);
+    const wallet = coins > 0 ? earnCoins(data.wallet, coins, at) : data.wallet;
+    const bank =
+      finished.length > 0 && allMissionsDone(next)
+        ? bankMissionChest(
+            { streak: data.streak, wallet, inventory: data.inventory },
+            {
+              childId: need(get().child).id,
+              date: need(next[0]).date,
+              dayNumber: need(get().child).questsCompleted + 1,
+              sets: COLLECTIBLE_SETS,
+              at,
+            },
+          )
+        : { streak: data.streak, wallet, inventory: data.inventory };
+    set({ missions: next, progress: { ...data, ...bank } });
+    return { change: { missions: next }, coins };
+  }
+
+  /** What money and chests look like right now, so a save always has the latest. */
+  const rewardRows = (): ProgressChange => {
+    const { wallet, streak, inventory } = need(get().progress);
+    return { wallet, streak, inventory };
+  };
+
+  function ensureMissions(date: string) {
+    const { child, progress: data } = get();
+    if (!child || !data || get().missions.length > 0) return;
+    const today = selectToday(GRADE_1_SKILLS, data.states, child.questsCompleted);
+    const missions = generateMissions(
+      {
+        childId: child.id,
+        date,
+        todayMastery: data.states[today?.skill.id ?? '']?.mastery ?? 0,
+        factCards: [...data.cards.values()],
+        at: now(),
+      },
+      mulberry32(hashSeed(`${child.id}|${date}|missions`)),
+    );
+    set({ missions });
+    save({ missions });
   }
 
   function move(next: QuestRun, before: QuestRun) {
     const change = completeIfDone(next, before);
+    const events: MissionEvent[] = [];
+    if (next.questDone && !before.questDone) events.push({ type: 'quest-complete' });
     if (next.challengeDone && !before.challengeDone) {
       const data = need(get().progress);
       const wallet = earnCoins(data.wallet, COINS.challengeComplete, now());
       set({ progress: { ...data, wallet } });
-      change.wallet = wallet;
+      events.push({ type: 'challenge-complete' });
     }
-    updateRun(next, change);
-    present(next);
+    const missions = advanceMissions(events);
+    const run = { ...next, coins: next.coins + missions.coins };
+    updateRun(run, { ...change, ...missions.change, ...(events.length ? rewardRows() : {}) });
+    present(run);
   }
 
   function attemptRow(
@@ -310,6 +435,10 @@ export function createGame(deps: GameDeps) {
     const wallet = coins > 0 ? earnCoins(data.wallet, coins, at) : data.wallet;
     const cards = new Map(data.cards);
     if (card) cards.set(card.factId, card);
+    const earned = data.states[problem.skillId]?.masteredAt === undefined;
+    if (earned && states[problem.skillId]?.masteredAt !== undefined) {
+      set({ newBadges: [...state.newBadges, problem.skillId] });
+    }
     set({ progress: { ...data, states, cards, wallet } });
     const skills = Object.values(states).filter((s) => s !== undefined && s.updatedAt === at);
     return { skills: skills as NonNullable<ProgressChange['skills']>, card, wallet };
@@ -342,9 +471,11 @@ export function createGame(deps: GameDeps) {
       const sessions = await repo.sessionsOn(child.id, date);
       const note = settled.events.map(eventLine).find((l) => l !== undefined);
       const session = sessions.find((s) => s.type === 'quest' && s.run);
+      const missions = await repo.missionsOn(child.id, date);
       set({
         child,
         enteredOn: date,
+        missions,
         session: undefined,
         run: undefined,
         progress: { ...data, states, streak: settled.streak },
@@ -354,6 +485,7 @@ export function createGame(deps: GameDeps) {
         ...(note ? { homeNote: note } : {}),
       });
       if (settled.streak !== data.streak) save({ streak: settled.streak });
+      if (child.placedAt !== undefined) ensureMissions(date);
     },
 
     /** The first tap: iOS allows speech and sound only after this. */
@@ -456,6 +588,7 @@ export function createGame(deps: GameDeps) {
         // Home speaks when it opens, so this goes first instead of being cut off by it.
         homeNote: { key: 'placement.done' },
       });
+      ensureMissions(today());
     },
 
     startQuest() {
@@ -495,7 +628,7 @@ export function createGame(deps: GameDeps) {
         run,
         updatedAt: at,
       };
-      set({ session, run, screen: 'quest', celebration: [] });
+      set({ session, run, screen: 'quest', celebration: [], newBadges: [] });
       save({ session });
       present(run);
     },
@@ -545,8 +678,17 @@ export function createGame(deps: GameDeps) {
 
       set({ feedback: result, mood: 'happy' });
       play('correct');
+      const cardBefore = problem.factId ? get().progress?.cards.get(problem.factId) : undefined;
       const scored = settle(next, problem, result.outcome, ms, result.coins);
-      updateRun(next, { attempt, ...scored });
+      const events: MissionEvent[] = [{ type: 'answer', inARow: next.inARow }];
+      if (result.tryNumber === 1 && beatsFastTime(cardBefore, true, ms)) {
+        events.push({ type: 'fact-beat' });
+      }
+      const missions = advanceMissions(events);
+      updateRun(
+        { ...next, coins: next.coins + missions.coins },
+        { attempt, ...scored, ...missions.change, ...rewardRows() },
+      );
       const go = () => actions.next();
       if (result.tryNumber === 2) {
         speaker.say({ key: 'feedback.recovered' }, go);
@@ -595,6 +737,70 @@ export function createGame(deps: GameDeps) {
       speaker.stop();
       const finished = get().run?.stage === 'finished';
       set({ screen: 'home', feedback: undefined, ...(finished ? { run: undefined } : {}) });
+    },
+
+    /** One level down from Home, and the mascot is always one tap from it. */
+    go(place: Place) {
+      play('tap');
+      set({ screen: place });
+      speaker.say({ key: PLACE_LINE[place] });
+    },
+
+    say(line: Speech) {
+      play('tap');
+      speaker.say(line);
+    },
+
+    openChest() {
+      const state = get();
+      const data = need(state.progress);
+      if (state.openedChest) return;
+      const { reward, inventory } = openNextChest(data.inventory, now());
+      if (!reward) return;
+      play('cheer');
+      set({ openedChest: reward, progress: { ...data, inventory }, mood: 'cheer' });
+      save({ inventory });
+      const name = reward.itemId ? render(`item.${reward.itemId}`) : '';
+      const isCosmetic = reward.itemId !== undefined && cosmeticFor(reward.itemId) !== undefined;
+      const line: Speech = reward.shield
+        ? { key: 'chest.shield' }
+        : isCosmetic
+          ? { key: 'chest.present' }
+          : reward.duplicate
+            ? { key: 'chest.again', params: { item: name } }
+            : reward.itemId
+              ? { key: 'chest.item', params: { item: name } }
+              : { key: 'chest.coins', params: { coins: reward.coins } };
+      sayInOrder(reward.setCompleted ? [line, { key: 'chest.set-done' }] : [line]);
+    },
+
+    closeChest() {
+      play('tap');
+      set({ openedChest: undefined });
+      const { progress: data, screen, farewell } = get();
+      if (data?.inventory.unopened.length) return;
+      speaker.say(screen === 'celebrate' && farewell ? farewell : { key: 'home.done' });
+    },
+
+    /** Tapping something owned wears it or takes it off. Buying takes a second, separate tap. */
+    toggleWear(id: string) {
+      const data = need(get().progress);
+      const cosmetic = need(cosmeticFor(id));
+      play('tap');
+      const inventory = toggleCosmetic(data.inventory, cosmetic, now());
+      set({ progress: { ...data, inventory } });
+      save({ inventory });
+    },
+
+    buy(id: string) {
+      const data = need(get().progress);
+      const cosmetic = need(cosmeticFor(id));
+      const bought = buyCosmetic(data.wallet, data.inventory, cosmetic, now());
+      if (!bought) return;
+      play('cheer');
+      set({ progress: { ...data, ...bought } });
+      save(bought);
+      speaker.say({ key: 'shop.bought' });
     },
 
     /** An installed app can sit in memory overnight, so a new day must be noticed on return. */

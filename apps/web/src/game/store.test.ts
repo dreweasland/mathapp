@@ -163,7 +163,11 @@ describe('a daily quest', () => {
     expect(env.state().screen).toBe('celebrate');
     expect(env.state().todayDone).toBe(true);
     expect(env.sounds).toContain('cheer');
-    expect(env.said.map((l) => l.key)).toContain('quest.done');
+    while (env.state().progress?.inventory.unopened.length) {
+      env.game.actions.openChest();
+      env.game.actions.closeChest();
+    }
+    expect(env.said.at(-1)?.key).toBe('quest.done');
   });
 
   it('counts the day before any challenge, and only once', async () => {
@@ -185,10 +189,11 @@ describe('a daily quest', () => {
     playThrough(env);
     const { run, progress } = env.state();
     expect(run?.challengeDone).toBe(true);
-    expect(progress?.wallet.coins).toBe(run?.coins);
+    const inChests = progress?.inventory.unopened.reduce((sum, c) => sum + c.coins, 0) ?? 0;
+    expect(progress?.wallet.coins).toBe((run?.coins ?? 0) + inChests);
     await env.game.actions.flushed();
     const saved = await env.database.wallets.get(env.state().child?.id as string);
-    expect(saved?.lifetimeCoins).toBe(run?.coins);
+    expect(saved?.lifetimeCoins).toBe((run?.coins ?? 0) + inChests);
   });
 
   it('a quest done today stays done: one a day', async () => {
@@ -419,8 +424,221 @@ describe('rough days', () => {
     }
     actions.skipChallenge();
     expect(env.state().screen).toBe('celebrate');
-    expect(env.said.map((l) => l.key)).toContain('quest.rough-day');
+    while (env.state().progress?.inventory.unopened.length) {
+      actions.openChest();
+      actions.closeChest();
+    }
+    expect(env.said.at(-1)?.key).toBe('quest.rough-day');
     expect(env.state().progress?.streak.current).toBe(1);
     expect(env.sounds).toContain('cheer');
+  });
+});
+
+describe('missions', () => {
+  let env: Env;
+  beforeEach(async () => {
+    env = setup();
+    await placed(env);
+  });
+
+  it('three appear for the day and are saved', async () => {
+    await env.game.actions.flushed();
+    expect(env.state().missions.map((m) => m.slot)).toEqual([1, 2, 3]);
+    const saved = await env.database.missions.count();
+    expect(saved).toBe(3);
+  });
+  it('are the same three if the app reopens', async () => {
+    const before = env.state().missions;
+    await env.game.actions.flushed();
+    const back = setup(NOON + 1000, env.database);
+    await back.game.actions.open();
+    expect(back.state().missions).toEqual(before);
+  });
+  it('a new day brings new ones', async () => {
+    await env.game.actions.flushed();
+    const next = setup(NOON + DAY, env.database);
+    await next.game.actions.open();
+    expect(next.state().missions[0]?.date).not.toBe(env.state().missions[0]?.date);
+    expect(next.state().missions).toHaveLength(3);
+  });
+  it('finishing the quest and challenge completes those missions and pays them', async () => {
+    env.game.actions.startQuest();
+    playThrough(env);
+    env.game.actions.acceptChallenge();
+    playThrough(env);
+    const { missions, progress, run } = env.state();
+    expect(missions.find((m) => m.kind === 'finish-challenge')?.done).toBe(true);
+    expect(missions.every((m) => m.done)).toBe(true);
+    expect(progress?.inventory.bonusChestDate).toBe(missions[0]?.date);
+    expect(progress?.inventory.unopened.some((c) => c.source === 'missions')).toBe(true);
+    // Run total covers answers, quest, challenge and missions; chests add their own.
+    const chestCoins = progress?.inventory.unopened.reduce((sum, c) => sum + c.coins, 0) ?? 0;
+    expect(progress?.wallet.coins).toBe((run?.coins ?? 0) + chestCoins);
+  });
+  it('mission progress survives closing the app', async () => {
+    env.game.actions.startQuest();
+    playThrough(env);
+    await env.game.actions.flushed();
+    const back = setup(NOON + 1000, env.database);
+    await back.game.actions.open();
+    expect(back.state().missions).toEqual(env.state().missions);
+  });
+});
+
+describe('chests', () => {
+  let env: Env;
+  const finishQuest = async (e: Env) => {
+    e.game.actions.startQuest();
+    playThrough(e);
+    e.game.actions.skipChallenge();
+    await e.game.actions.flushed();
+  };
+  beforeEach(async () => {
+    env = setup();
+    await placed(env);
+  });
+
+  it('day 1 ends with a collectible chest to open', async () => {
+    await finishQuest(env);
+    expect(env.said.at(-1)?.key).toBe('chest.tap');
+    env.game.actions.openChest();
+    const opened = env.state().openedChest;
+    expect(opened?.itemId).toMatch(/^forest\./);
+    expect(env.state().progress?.inventory.items).toContain(opened?.itemId);
+    expect(env.said.at(-1)?.key).toBe('chest.item');
+  });
+  it('the goodbye comes after the last chest', async () => {
+    await finishQuest(env);
+    env.game.actions.openChest();
+    env.game.actions.closeChest();
+    expect(env.said.at(-1)?.key).toBe('quest.done');
+    expect(env.state().openedChest).toBeUndefined();
+  });
+  it('a chest left unopened is still there tomorrow', async () => {
+    await finishQuest(env);
+    const back = setup(NOON + DAY, env.database);
+    await back.game.actions.open();
+    expect(back.state().progress?.inventory.unopened.length).toBeGreaterThan(0);
+    back.game.actions.openChest();
+    await back.game.actions.flushed();
+    const again = setup(NOON + DAY + 1000, env.database);
+    await again.game.actions.open();
+    expect(again.state().progress?.inventory.unopened.length).toBe(
+      back.state().progress?.inventory.unopened.length,
+    );
+  });
+  it('a double tap opens one chest', async () => {
+    await finishQuest(env);
+    const count = env.state().progress?.inventory.unopened.length ?? 0;
+    env.game.actions.openChest();
+    env.game.actions.openChest();
+    expect(env.state().progress?.inventory.unopened.length).toBe(count - 1);
+  });
+  it('day 2 dresses the bear with the promised present', async () => {
+    await finishQuest(env);
+    const next = setup(NOON + DAY, env.database);
+    await next.game.actions.open();
+    await finishQuest(next);
+    expect(next.state().progress?.inventory.mascotEquipped['accessory']).toBe('accessory.bow');
+    const unopened = next.state().progress?.inventory.unopened ?? [];
+    expect(unopened.some((c) => c.itemId === 'accessory.bow')).toBe(true);
+  });
+  it('a rewarded chest is saved even if the child never reaches the celebration', async () => {
+    env.game.actions.startQuest();
+    playThrough(env);
+    await env.game.actions.flushed();
+    const back = setup(NOON + 1000, env.database);
+    await back.game.actions.open();
+    expect(back.state().progress?.inventory.dailyChestDate).toBeDefined();
+  });
+});
+
+describe('badges', () => {
+  it('a badge earned in a quest is celebrated once', async () => {
+    const env = setup();
+    await placed(env);
+    const child = env.state().child as { id: string };
+    const data = env.state().progress as NonNullable<ReturnType<Env['state']>['progress']>;
+    const { selectToday } = await import('@mathapp/engine');
+    const { GRADE_1_SKILLS } = await import('@mathapp/content');
+    const skill = selectToday(GRADE_1_SKILLS, data.states, 0)?.skill.id as string;
+    env.game.store.setState({
+      progress: {
+        ...data,
+        states: {
+          ...data.states,
+          [skill]: {
+            ...(data.states[skill] as NonNullable<(typeof data.states)[string]>),
+            childId: child.id,
+            mastery: 99,
+            attempts: 40,
+          },
+        },
+      },
+    });
+    env.game.actions.startQuest();
+    playThrough(env);
+    env.game.actions.skipChallenge();
+    expect(env.state().newBadges).toEqual([skill]);
+    expect(env.said.map((l) => l.key)).toContain('badge.earned');
+  });
+});
+
+describe('dressing the bear', () => {
+  let env: Env;
+  beforeEach(async () => {
+    env = setup();
+    await placed(env);
+    const data = env.state().progress as NonNullable<ReturnType<Env['state']>['progress']>;
+    env.game.store.setState({
+      progress: { ...data, wallet: { ...data.wallet, coins: 500, lifetimeCoins: 500 } },
+    });
+  });
+
+  it('buying spends only what it costs and keeps lifetime coins', () => {
+    env.game.actions.buy('hat.cap');
+    const { wallet, inventory } = env.state().progress as NonNullable<
+      ReturnType<Env['state']>['progress']
+    >;
+    expect(wallet.coins).toBe(400);
+    expect(wallet.lifetimeCoins).toBe(500);
+    expect(inventory.mascotEquipped['hat']).toBe('hat.cap');
+  });
+  it('cannot be charged twice', () => {
+    env.game.actions.buy('hat.cap');
+    env.game.actions.buy('hat.cap');
+    expect(env.state().progress?.wallet.coins).toBe(400);
+  });
+  it('taking something off keeps it', () => {
+    env.game.actions.buy('hat.cap');
+    env.game.actions.toggleWear('hat.cap');
+    const inventory = env.state().progress?.inventory;
+    expect(inventory?.mascotEquipped['hat']).toBeUndefined();
+    expect(inventory?.items).toContain('hat.cap');
+  });
+  it('purchases survive closing the app', async () => {
+    env.game.actions.buy('hat.cap');
+    await env.game.actions.flushed();
+    const back = setup(NOON + 1000, env.database);
+    await back.game.actions.open();
+    expect(back.state().progress?.inventory.items).toContain('hat.cap');
+  });
+});
+
+describe('a failed save', () => {
+  it('does not interrupt the child, and flags it for a grown-up', async () => {
+    const env = setup();
+    await placed(env);
+    env.game.actions.startQuest();
+    env.game.actions.beginSection();
+    env.database.close();
+    await env.database.delete();
+    const original = console.error;
+    console.error = () => undefined;
+    env.game.actions.answer(problemNow(env).answer);
+    await env.game.actions.flushed();
+    console.error = original;
+    expect(env.state().feedback?.kind).toBe('correct');
+    expect(env.state().saveFailed).toBe(true);
   });
 });

@@ -2,7 +2,7 @@
 
 A private, offline math practice app for a 6-year-old. The spec is `MATH_APP_BRIEF.md`, and `CLAUDE.md` holds the working rules and decisions.
 
-**Status:** Phases 0–2 are done: the installable shell, the full Grade 1 engine, and the child's Daily Quest from first run to celebration. Streak visuals, missions, chests and the parent dashboard come next.
+**Status:** Phases 0–3 are done: the installable shell, the full Grade 1 engine, the child's Daily Quest, and the engagement systems (growing plant, shields, missions, chests, collectibles, dressing up the bear, trophy wall, progress map). The parent dashboard comes next.
 
 ## Setup
 
@@ -54,3 +54,4 @@ Playwright only approximates Safari, so these need the real device:
 5. Tap through a whole quest in Airplane Mode. Prompts should be spoken and sounds should play.
 6. Flip the ring/silent switch to silent and try again. If speech or sound goes quiet, turn the switch back and keep the volume up during practice.
 7. Leave the app open overnight, then return to it. It should offer a new quest.
+8. Open a certificate on the trophy wall and tap print from the installed app. If nothing happens, that's a limit of the Home Screen app, so note it for Phase 4.

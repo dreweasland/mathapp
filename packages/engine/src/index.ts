@@ -16,3 +16,4 @@ export * from './goals';
 export * from './missions';
 export * from './quest';
 export * from './questRun';
+export * from './rewards';

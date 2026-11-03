@@ -6,7 +6,7 @@ import { buildDailyQuest, factProblem, recordQuestOnSkill, type QuestInput } fro
 import { mulberry32 } from './rng';
 import type { SkillState } from './state';
 import { solve } from './testing/solver';
-import type { SkillDef, SkillStates } from './types';
+import type { Problem, SkillDef, SkillStates } from './types';
 
 const skill = (
   id: string,
@@ -317,4 +317,53 @@ describe('recordQuestOnSkill', () => {
 
 it('the test skill list only uses real generators', () => {
   for (const s of SKILLS) expect(GENERATORS[s.id]).toBeDefined();
+});
+
+describe('retakes in the quest', () => {
+  const missed: Problem = {
+    skillId: 'a',
+    questionType: 'number-pad',
+    difficulty: 1,
+    operands: { kind: 'arith', op: 'add', a: 40, b: 2 },
+    answer: '42',
+    speech: { key: 'q.add' },
+    hint: { visual: 'counters' },
+  };
+  const skills = [skill('1.counting', 1), skill('1.shapes', 2)];
+  const states = (retakes: Problem[]): SkillStates => ({
+    '1.counting': { ...newSkillState('c', '1.counting'), attempts: 3, retakes },
+  });
+  const build = (retakes: Problem[], questsCompleted = 5) =>
+    buildDailyQuest({
+      childId: 'c',
+      today: '2026-11-02',
+      questsCompleted,
+      skills,
+      states: states(retakes),
+      factCards: [],
+    });
+  const inToday = (q: ReturnType<typeof build>) => q.sections[1]?.items ?? [];
+
+  it('a missed problem comes back in the next quest, marked as review', () => {
+    const items = inToday(build([missed]));
+    const found = items.filter((i) => i.problem.answer === '42' && i.review);
+    expect(found).toHaveLength(1);
+  });
+  it('does not make the quest longer', () => {
+    expect(inToday(build([missed])).length).toBe(inToday(build([])).length);
+  });
+  it('brings back at most two a day', () => {
+    const many = [40, 41, 42].map((a) => ({
+      ...missed,
+      answer: `x${a}`,
+      operands: { kind: 'arith' as const, op: 'add' as const, a, b: 2 },
+    }));
+    expect(inToday(build(many)).filter((i) => i.problem.answer.startsWith('x'))).toHaveLength(2);
+  });
+  it('stays behind a worked example and ahead of a first-week final win', () => {
+    const items = inToday(build([missed], 0));
+    expect(items[0]?.problem.answer).not.toBe('42');
+    expect(items.at(-1)?.finalWin).toBe(true);
+    expect(items.some((i) => i.problem.answer === '42')).toBe(true);
+  });
 });

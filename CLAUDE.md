@@ -20,7 +20,7 @@ apps/web/                  PWA shell
   src/audio/               speech.ts (always by string key), sfx.ts
   src/question/            ProblemView = Prompt + Hint + Answers; one renderer for all 6 question types
   src/visuals/ src/ui/     clock, ten-frame, shapes, base-ten; mascot, big button
-  src/screens/             Setup, Placement, Home, Quest, Celebrate
+  src/screens/             Setup, Placement, Home, Quest, Celebrate, ChestReveal, Map, Trophies, Stickers, Shop
   src/gallery.tsx          dev-only page of any problem, for layout tests; never in the build
   e2e/                     Playwright: offline, quest, layout
 packages/engine/src/
@@ -28,10 +28,10 @@ packages/engine/src/
   types.ts                 shared types
   generators/              one generator + test per skill
   mastery difficulty frontier placement factDeck    adaptive logic
-  streak wallet goals missions quest                daily loop logic
+  streak wallet goals missions quest rewards        daily loop logic
   questRun                 tries, sections, end-on-win, resume, scoring (pure; the store just calls it)
   audit.test.ts            independent answer-key audit
-packages/content/src/      grade1.ts (skills), strings.en.ts (speech and praise), answerSpeech.ts
+packages/content/src/      grade1.ts (skills), collectibles.ts (sets, shop, prices), strings.en.ts (speech and praise), answerSpeech.ts
 scripts/                   demo-quest.ts and fixtures
 ```
 
@@ -75,6 +75,10 @@ Agreed with the parent before Phase 0.
 - **Challenge bonus:** 5 coins. The brief promises a bonus but gives no number.
 - **Placement feedback:** the same neutral response for right and wrong, with one try and no hints.
 - **Response clock:** starts when the prompt finishes speaking, or at display if the child answers first. On the number pad it stops at the last digit, not at the check mark.
+- **Chests are banked when earned:** contents and coins apply at quest end, and opening only shows them, so closing the app can't cost a chest. Odds are flat: mostly an item, sometimes coins, rarely a shield (none before day 7). No rarity tiers.
+- **Chest tiers:** bronze, silver and gold by quests done this week, reset each Monday. A Perfect Week upgrades that day's chest.
+- **Shop:** 2,630 coins total, about a month of quests, because it's the only coin sink. Tapping tries an item on; buying is a second, separate tap. Prices live in `collectibles.ts`.
+- **Missed problems:** non-fact problems missed twice return as retakes in the next quest (max 2 a day) and clear when answered. Fact problems use their cards.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
 
 ## How the quest UI works

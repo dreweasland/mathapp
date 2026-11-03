@@ -356,6 +356,76 @@ describe('settleItem', () => {
   });
 });
 
+describe('retakes', () => {
+  const skill: SkillDef = {
+    id: 's',
+    grade: 1,
+    standard: 'x',
+    name: 's',
+    kidName: 's',
+    speechKey: 's',
+    badgeName: 's',
+    prerequisites: [],
+    questionTypes: ['number-pad', 'multiple-choice'],
+    fastMs: 3000,
+    factBased: false,
+    mastery: { threshold: 80, minAttempts: 15 },
+    order: 1,
+  };
+  const base = {
+    skills: [skill],
+    states: {},
+    childId: 'c',
+    responseMs: 1000,
+    today: '2026-11-02',
+    at: 5,
+  };
+  const numbered = (a: number) => problem('7', { operands: { kind: 'arith', op: 'add', a, b: 0 } });
+
+  it('a missed problem is saved to come back', () => {
+    const { states } = settleItem({ ...base, problem: problem(), outcome: 'missed' });
+    expect(states['s']?.retakes).toHaveLength(1);
+  });
+  it('a problem right on either try is not saved', () => {
+    for (const outcome of ['fast', 'slow', 'second-try'] as const) {
+      const { states } = settleItem({ ...base, problem: problem(), outcome });
+      expect(states['s']?.retakes).toBeUndefined();
+    }
+  });
+  it('getting it right later clears it', () => {
+    const missed = settleItem({ ...base, problem: problem(), outcome: 'missed' });
+    const { states } = settleItem({
+      ...base,
+      states: missed.states,
+      problem: problem(),
+      outcome: 'slow',
+    });
+    expect(states['s']?.retakes).toBeUndefined();
+  });
+  it('missing it again keeps one copy', () => {
+    const first = settleItem({ ...base, problem: problem(), outcome: 'missed' });
+    const { states } = settleItem({
+      ...base,
+      states: first.states,
+      problem: problem(),
+      outcome: 'missed',
+    });
+    expect(states['s']?.retakes).toHaveLength(1);
+  });
+  it('keeps only the newest few, so a rough day does not flood tomorrow', () => {
+    let states = base.states as Parameters<typeof settleItem>[0]['states'];
+    for (let a = 0; a < 6; a++) {
+      states = settleItem({ ...base, states, problem: numbered(a), outcome: 'missed' }).states;
+    }
+    expect(states['s']?.retakes).toHaveLength(3);
+  });
+  it('fact problems leave this to their cards', () => {
+    const fact = problem('7', { factId: 'add:3+4' });
+    const { states } = settleItem({ ...base, problem: fact, outcome: 'missed' });
+    expect(states['s']?.retakes).toBeUndefined();
+  });
+});
+
 describe('completeDailyQuest', () => {
   const child: ChildProfile = {
     id: 'c',
@@ -391,6 +461,19 @@ describe('completeDailyQuest', () => {
   });
   it('adds to the count of quests on a frontier skill', () => {
     expect(completeDailyQuest(input).states['s']?.questsOnSkill).toBe(1);
+  });
+  it('day 7 brings the first shield, even after a missed day', () => {
+    const q = quest({}, { dayNumber: 7 });
+    const done = completeDailyQuest({ ...input, quest: q });
+    expect(done.streak.current).toBe(1);
+    expect(done.streak.shields).toBe(1);
+    expect(done.events).toContainEqual({ type: 'shield-earned' });
+  });
+  it('day 7 gives no extra shield if one was already earned', () => {
+    const q = quest({}, { dayNumber: 7 });
+    const streak = { ...input.streak, shields: 1 };
+    const done = completeDailyQuest({ ...input, streak, quest: q });
+    expect(done.streak.shields).toBe(1);
   });
   it('leaves that count alone on a review day', () => {
     const review = quest({}, { mode: 'review' });

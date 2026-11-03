@@ -90,6 +90,17 @@ export function selectReview(skills: SkillDef[], states: SkillStates, limit: num
     .slice(0, limit);
 }
 
+export type MapStatus = 'mastered' | 'passed' | 'current' | 'open' | 'locked';
+
+/** Each skill's place on the child's map. A dip in mastery never moves one backward. */
+export function mapStatus(skill: SkillDef, skills: SkillDef[], states: SkillStates): MapStatus {
+  const state = states[skill.id];
+  if (state?.masteredAt !== undefined) return 'mastered';
+  if (state?.placedOut) return 'passed';
+  if (selectFrontier(skills, states)?.id === skill.id) return 'current';
+  return isUnlocked(skill, states) ? 'open' : 'locked';
+}
+
 export type TodayMode = 'new' | 'continue' | 'review';
 
 export interface TodaySkill {

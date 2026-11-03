@@ -121,6 +121,12 @@ export function completeQuest(streak: Streak, today: LocalDate, at: number): Str
   return { streak: week.streak, events: [...events, ...week.events] };
 }
 
+/** A shield the child earned, from a chest or the first week. Stays within the cap. */
+export function earnShield(streak: Streak, at: number): Streak {
+  if (streak.shields >= MAX_SHIELDS) return streak;
+  return { ...streak, shields: streak.shields + 1, updatedAt: at };
+}
+
 /** Sick day or vacation. Stays within the cap. */
 export function grantShield(streak: Streak, at: number): Streak {
   if (streak.shields >= MAX_SHIELDS) return streak;
