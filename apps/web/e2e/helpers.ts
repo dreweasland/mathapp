@@ -90,9 +90,11 @@ export function wrongValue(problem: Problem, avoid: string[] = []): string {
   throw new Error('No wrong value available');
 }
 
-export async function setUpChild(page: Page) {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Continue in Safari for now' }).click();
+export async function setUpChild(page: Page, onSetup = false) {
+  if (!onSetup) {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Continue in Safari for now' }).click();
+  }
   await page.getByLabel("Child's name").fill('Sam');
   await page.getByRole('button', { name: 'avatar 🦊' }).click();
   await page.getByRole('button', { name: 'done' }).click();

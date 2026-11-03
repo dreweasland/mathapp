@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Mission, SkillState } from '@mathapp/engine';
 import { AppDb } from './db';
@@ -13,16 +14,17 @@ afterEach(async () => {
   await db.delete();
 });
 
-describe('schema v1', () => {
-  it('has all 11 tables at version 1', async () => {
+describe('schema', () => {
+  it('has all 12 tables at version 2', async () => {
     await db.open();
-    expect(db.verno).toBe(1);
+    expect(db.verno).toBe(2);
     expect(db.tables.map((t) => t.name).sort()).toEqual(
       [
         'attempts',
         'cheers',
         'children',
         'factCards',
+        'family',
         'goals',
         'inventories',
         'missions',
@@ -122,6 +124,26 @@ describe('children repository', () => {
     db.close();
     await db.open();
     expect(await repo.get(child.id)).toEqual(child);
+  });
+});
+
+describe('upgrading a device', () => {
+  it('keeps a child already saved under schema v1', async () => {
+    const name = `upgrade-${crypto.randomUUID()}`;
+    const old = new Dexie(name);
+    old.version(1).stores({ children: 'id, updatedAt', streaks: 'childId, updatedAt' });
+    await old.open();
+    await old.table('children').put({ id: 'a', name: 'Sam', updatedAt: 1 });
+    await old.table('streaks').put({ childId: 'a', current: 9, updatedAt: 1 });
+    old.close();
+
+    const upgraded = new AppDb(name);
+    await upgraded.open();
+    expect(upgraded.verno).toBe(2);
+    expect((await upgraded.children.get('a'))?.name).toBe('Sam');
+    expect((await upgraded.streaks.get('a'))?.current).toBe(9);
+    expect(await upgraded.family.get('family')).toBeUndefined();
+    await upgraded.delete();
   });
 });
 

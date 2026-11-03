@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BOX_INTERVALS,
-  fluencyStatus,
+  factHeat,
   isAutomatic,
   newFactCard,
   NEW_CARDS_PER_DAY,
@@ -97,11 +97,21 @@ describe('fluency', () => {
     const h = history(10, 10).map((x, i) => (i < 2 ? { ...x, correct: false } : x));
     expect(isAutomatic(card({ history: h }))).toBe(false);
   });
-  it('maps to the heat-map statuses', () => {
-    expect(fluencyStatus(undefined)).toBe('unknown');
-    expect(fluencyStatus(card())).toBe('unknown');
-    expect(fluencyStatus(card({ history: history(2, 5) }))).toBe('slow');
-    expect(fluencyStatus(card({ history: history(10, 10) }))).toBe('fast');
+  it('maps to the heat-map levels', () => {
+    expect(factHeat(undefined)).toBe('unseen');
+    expect(factHeat(card())).toBe('unseen');
+    expect(factHeat(card({ history: history(2, 5) }))).toBe('working');
+    expect(factHeat(card({ history: history(10, 10) }))).toBe('automatic');
+  });
+  it('shows a fact getting quick long before the 10-attempt bar', () => {
+    const fast = { at: 1, correct: true, responseMs: 2000 };
+    const slow = { at: 1, correct: true, responseMs: 5000 };
+    const wrong = { at: 1, correct: false, responseMs: 1000 };
+    expect(factHeat(card({ history: [fast] }))).toBe('working');
+    expect(factHeat(card({ history: [fast, fast] }))).toBe('quick');
+    expect(factHeat(card({ history: [wrong, slow, fast, fast] }))).toBe('quick');
+    expect(factHeat(card({ history: [fast, fast, slow] }))).toBe('working');
+    expect(factHeat(card({ history: [fast, fast, wrong] }))).toBe('working');
   });
 });
 

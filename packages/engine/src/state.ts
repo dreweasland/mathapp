@@ -110,6 +110,8 @@ export interface Session {
   correctCount: number;
   coinsEarned: number;
   completedQuest: boolean;
+  /** Kept after the run is cleared, for the parent's daily-goal view. */
+  challengeDone?: boolean;
   /** The quest in progress. Cleared when it ends, so old rows stay small. */
   run?: QuestRun;
   updatedAt: number;
@@ -203,11 +205,11 @@ export interface Goal {
   updatedAt: number;
 }
 
-/** `AudioData` is a Blob in the browser; the engine stays free of DOM types. */
+/** `AudioData` is browser-only, so the engine stays free of DOM types. */
 export interface Cheer<AudioData = unknown> {
   id: string;
   childId: string;
-  audioBlob?: AudioData;
+  audio?: AudioData;
   emoji?: string;
   createdAt: number;
   playedAt?: number;

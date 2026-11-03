@@ -1,11 +1,24 @@
 import 'fake-indexeddb/auto';
-import { currentItem, type Problem, type QuestRun, type Speech } from '@mathapp/engine';
+import { GRADE_1_SKILLS } from '@mathapp/content';
+import {
+  currentItem,
+  selectToday,
+  type ChildProfile,
+  type DailyGoal,
+  type Goal,
+  type Problem,
+  type QuestRun,
+  type SkillState,
+  type Speech,
+} from '@mathapp/engine';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Sound } from '../audio/sfx';
 import type { Speaker } from '../audio/speech';
-import { AppDb } from '../db/db';
+import { AppDb, type CheerAudio, type StoredCheer } from '../db/db';
 import { childrenRepository } from '../db/repositories/children';
-import { progressRepository } from '../db/repositories/progress';
+import { familyRepository } from '../db/repositories/family';
+import { parentRepository } from '../db/repositories/parent';
+import { progressRepository, type ChildProgress } from '../db/repositories/progress';
 import { createGame } from './store';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -35,11 +48,14 @@ function setup(startAt = NOON, database = new AppDb(`store-test-${++dbCount}`)) 
     stop: () => undefined,
   };
   const pending: (() => void)[] = [];
+  const clips: CheerAudio[] = [];
   const game = createGame({
     children: childrenRepository(database, () => time),
     progress: progressRepository(database),
+    family: familyRepository(database, () => time),
     speaker,
     play: (s) => sounds.push(s),
+    clip: { play: (audio) => clips.push(audio), stop: () => undefined },
     now: () => time,
     after: (_, run) => pending.push(run),
   });
@@ -49,6 +65,7 @@ function setup(startAt = NOON, database = new AppDb(`store-test-${++dbCount}`)) 
   return {
     database,
     game,
+    clips,
     hold,
     said,
     sounds,
@@ -640,5 +657,262 @@ describe('a failed save', () => {
     console.error = original;
     expect(env.state().feedback?.kind).toBe('correct');
     expect(env.state().saveFailed).toBe(true);
+  });
+});
+
+describe('more than one child', () => {
+  it('asks who is playing, and each child keeps their own day', async () => {
+    const env = setup();
+    await placed(env);
+    const first = env.state().child?.id;
+    const repo = childrenRepository(env.database, () => NOON + 1000);
+    await repo.create({ name: 'Kim', avatar: '🐼' });
+
+    const again = setup(NOON, env.database);
+    await again.game.actions.open();
+    expect(again.state().screen).toBe('who');
+    expect(again.state().everyone.map((c) => c.name)).toEqual(['Sam', 'Kim']);
+
+    const kim = again.state().everyone[1] as ChildProfile;
+    await again.game.actions.pick(kim);
+    expect(again.state().child?.id).toBe(kim.id);
+    expect(again.state().screen).toBe('placement');
+    expect(again.state().child?.id).not.toBe(first);
+  });
+  it('one child goes straight to Home', async () => {
+    const env = setup();
+    await placed(env);
+    const again = setup(NOON, env.database);
+    await again.game.actions.open();
+    expect(again.state().screen).toBe('home');
+  });
+  it('a half-done quest stays with the child who started it', async () => {
+    const env = setup();
+    await placed(env);
+    const sam = env.state().child as ChildProfile;
+    env.game.actions.startQuest();
+    env.game.actions.goHome();
+    await env.game.actions.flushed();
+    const kim = await childrenRepository(env.database, () => NOON).create({
+      name: 'Kim',
+      avatar: '🐼',
+    });
+    await env.game.actions.pick({ ...kim, placedAt: 1 });
+    expect(env.state().run).toBeUndefined();
+    await env.game.actions.pick(sam);
+    expect(env.state().run).toBeDefined();
+  });
+});
+
+describe('leaving the dashboard', () => {
+  it('picks up changes a grown-up made, such as a shield', async () => {
+    const env = setup();
+    await placed(env);
+    await env.game.actions.openParent();
+    expect(env.state().screen).toBe('parent');
+    const id = env.state().child?.id as string;
+    await parentRepository(env.database, () => NOON).grantShield(id);
+    await env.game.actions.closeParent();
+    expect(env.state().screen).toBe('home');
+    expect(env.state().progress?.streak.shields).toBe(1);
+  });
+  it('waits for saves before opening, so the dashboard is never behind', async () => {
+    const env = setup();
+    await placed(env);
+    env.game.actions.startQuest();
+    await env.game.actions.openParent();
+    const sessions = await env.database.sessions.toArray();
+    expect(sessions.some((s) => s.run)).toBe(true);
+  });
+  it('after removing the child who was playing, moves to who is left', async () => {
+    const env = setup();
+    await placed(env);
+    const parent = parentRepository(env.database, () => NOON);
+    const kim = await parent.addChild({ name: 'Kim', avatar: '🐼' });
+    await parent.removeChild(env.state().child?.id as string);
+    await env.game.actions.closeParent();
+    expect(env.state().child?.id).toBe(kim.id);
+  });
+  it('shows the reminder only once a backup is worth having', async () => {
+    const env = setup();
+    await placed(env);
+    expect(env.state().backupDue).toBe(false);
+    const id = env.state().child?.id as string;
+    await env.database.children.update(id, { questsCompleted: 7 });
+    const again = setup(NOON, env.database);
+    await again.game.actions.open();
+    expect(again.state().backupDue).toBe(true);
+    await familyRepository(env.database, () => NOON).markBackedUp();
+    await again.game.actions.open();
+    expect(again.state().backupDue).toBe(false);
+  });
+});
+
+describe('daily goal', () => {
+  const finishRequired = async (env: Env, dailyGoal: DailyGoal) => {
+    await placed(env);
+    const child = env.state().child as ChildProfile;
+    env.game.store.setState({ child: { ...child, dailyGoal } });
+    env.game.actions.startQuest();
+    playThrough(env);
+  };
+  it('a quest+challenge child hears that the challenge is their goal, and can still skip', async () => {
+    const env = setup();
+    await finishRequired(env, 'quest+challenge');
+    expect(env.said.map((l) => l.key)).toContain('quest.challenge-goal');
+    env.game.actions.skipChallenge();
+    expect(env.state().screen).toBe('celebrate');
+    expect(env.state().progress?.streak.current).toBe(1);
+    expect(env.said.map((l) => l.key)).not.toContain('daily.met');
+  });
+  it('finishing the challenge meets that goal and is saved for the grown-up', async () => {
+    const env = setup();
+    await finishRequired(env, 'quest+challenge');
+    env.game.actions.acceptChallenge();
+    playThrough(env);
+    expect(env.said.map((l) => l.key)).toContain('daily.met');
+    await env.game.actions.flushed();
+    const sessions = await env.database.sessions.toArray();
+    expect(sessions.find((s) => s.type === 'quest')?.challengeDone).toBe(true);
+  });
+  it('a quest-only child hears the plain offer', async () => {
+    const env = setup();
+    await finishRequired(env, 'quest');
+    expect(env.said.map((l) => l.key)).toContain('quest.challenge');
+  });
+});
+
+describe("a grown-up's goal", () => {
+  const goal = (childId: string, over: Partial<Goal> = {}): Goal => ({
+    id: 'g',
+    childId,
+    title: 'Movie',
+    imageKey: '🎬',
+    target: 2,
+    unit: 'quests',
+    progress: 0,
+    rewardText: 'movie night',
+    startDate: '2026-11-01',
+    delivered: false,
+    updatedAt: 0,
+    ...over,
+  });
+  const withGoal = async (over: Partial<Goal> = {}) => {
+    const env = setup();
+    await placed(env);
+    await env.database.goals.put(goal(env.state().child?.id as string, over));
+    await env.game.actions.enter(env.state().child as ChildProfile);
+    return env;
+  };
+
+  it('moves when a quest counts, and survives a reload', async () => {
+    const env = await withGoal();
+    env.game.actions.startQuest();
+    playThrough(env);
+    expect(env.state().progress?.goals[0]?.progress).toBe(1);
+    await env.game.actions.flushed();
+    expect((await env.database.goals.get('g'))?.progress).toBe(1);
+  });
+  it('announces the reward the moment it is reached', async () => {
+    const env = await withGoal({ progress: 1 });
+    env.game.actions.startQuest();
+    playThrough(env);
+    env.game.actions.skipChallenge();
+    const line = env.said.find((l) => l.key === 'goal.reached');
+    expect(line?.params?.reward).toBe('movie night');
+  });
+  it('does not count quests before the goal started', async () => {
+    const env = await withGoal({ startDate: '2026-11-03' });
+    env.game.actions.startQuest();
+    playThrough(env);
+    expect(env.state().progress?.goals[0]?.progress).toBe(0);
+  });
+  it('counts badges for a badge goal', async () => {
+    const env = await withGoal({ unit: 'skills' });
+    const data = env.state().progress as ChildProgress;
+    const skill = selectToday(GRADE_1_SKILLS, data.states, 0)?.skill.id as string;
+    env.game.store.setState({
+      progress: {
+        ...data,
+        states: {
+          ...data.states,
+          [skill]: { ...(data.states[skill] as SkillState), mastery: 99, attempts: 40 },
+        },
+      },
+    });
+    env.game.actions.startQuest();
+    playThrough(env);
+    expect(env.state().newBadges).toEqual([skill]);
+    expect(env.state().progress?.goals[0]?.progress).toBe(1);
+  });
+});
+
+describe('cheers', () => {
+  const cheer = (childId: string, over: Partial<StoredCheer> = {}): StoredCheer => ({
+    id: 'c',
+    childId,
+    emoji: '🌟',
+    createdAt: 1,
+    updatedAt: 1,
+    ...over,
+  });
+  const withCheer = async (over: Partial<StoredCheer> = {}) => {
+    const env = setup();
+    await placed(env);
+    await env.database.cheers.put(cheer(env.state().child?.id as string, over));
+    await env.game.actions.enter(env.state().child as ChildProfile);
+    return env;
+  };
+
+  it('plays before the next quest, then the quest starts', async () => {
+    const env = await withCheer();
+    env.game.actions.startQuest();
+    expect(env.state().screen).toBe('cheer');
+    expect(env.said.at(-1)?.key).toBe('cheer.from');
+    env.game.actions.finishCheer();
+    expect(env.state().screen).toBe('quest');
+    await env.game.actions.flushed();
+    expect((await env.database.cheers.get('c'))?.playedAt).toBeDefined();
+  });
+  it('starts a recording inside the tap, not after a spoken intro', async () => {
+    const bytes = new Uint8Array([1]).buffer;
+    const env = await withCheer({ audio: { bytes, type: 'audio/mp4' } });
+    env.game.actions.startQuest();
+    expect(env.clips).toHaveLength(1);
+    expect(env.said.at(-1)?.key).not.toBe('cheer.from');
+  });
+  it('can be heard again, and is never played twice across quests', async () => {
+    const env = await withCheer();
+    env.game.actions.startQuest();
+    env.game.actions.playCheer();
+    env.game.actions.finishCheer();
+    await env.game.actions.flushed();
+    const again = setup(NOON, env.database);
+    await again.game.actions.open();
+    expect(again.state().progress?.cheers).toEqual([]);
+  });
+  it('stays for next time if the app closes during it', async () => {
+    const env = await withCheer();
+    env.game.actions.startQuest();
+    const again = setup(NOON, env.database);
+    await again.game.actions.open();
+    expect(again.state().progress?.cheers).toHaveLength(1);
+  });
+  it('plays one per quest, oldest first', async () => {
+    const env = await withCheer();
+    const childId = env.state().child?.id as string;
+    await env.database.cheers.put(cheer(childId, { id: 'd', createdAt: 2 }));
+    await env.game.actions.enter(env.state().child as ChildProfile);
+    env.game.actions.startQuest();
+    expect(env.state().cheer?.id).toBe('c');
+    env.game.actions.finishCheer();
+    expect(env.state().screen).toBe('quest');
+    expect(env.state().progress?.cheers.map((c) => c.id)).toEqual(['d']);
+  });
+  it('waits for tomorrow when today is already done', async () => {
+    const env = await withCheer();
+    env.game.store.setState({ todayDone: true });
+    env.game.actions.startQuest();
+    expect(env.state().screen).toBe('home');
   });
 });

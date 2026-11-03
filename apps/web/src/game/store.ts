@@ -10,6 +10,7 @@ import {
   MISSION_COINS,
   acceptChallenge,
   advance,
+  advanceGoals,
   allMissionsDone,
   applyMissionEvent,
   applyPlacement,
@@ -28,6 +29,7 @@ import {
   generateMissions,
   hashSeed,
   isCorrect,
+  justReached,
   mulberry32,
   nextProbe,
   openNextChest,
@@ -47,6 +49,7 @@ import {
   type Attempt,
   type ChestReward,
   type ChildProfile,
+  type Goal,
   type Mission,
   type MissionEvent,
   type PlacementState,
@@ -59,8 +62,11 @@ import {
   type TryResult,
 } from '@mathapp/engine';
 import { createStore } from 'zustand/vanilla';
+import type { ClipPlayer } from '../audio/clip';
 import type { PlaySound } from '../audio/sfx';
 import type { Speaker } from '../audio/speech';
+import type { StoredCheer } from '../db/db';
+import { backupDue, type FamilyRepository } from '../db/repositories/family';
 import type {
   ChildProgress,
   ProgressChange,
@@ -72,8 +78,11 @@ import { localDate } from './today';
 export type Screen =
   | 'loading'
   | 'setup'
+  | 'who'
+  | 'parent'
   | 'placement'
   | 'home'
+  | 'cheer'
   | 'quest'
   | 'celebrate'
   | 'map'
@@ -99,8 +108,10 @@ const PRAISE_EVERY = 3;
 export interface GameDeps {
   children: ReturnType<typeof childrenRepository>;
   progress: ProgressRepository;
+  family: FamilyRepository;
   speaker: Speaker;
   play: PlaySound;
+  clip: ClipPlayer;
   now: () => number;
   /** Replaced in tests so nothing waits on real time. */
   after: (ms: number, run: () => void) => void;
@@ -109,6 +120,12 @@ export interface GameDeps {
 export interface GameState {
   screen: Screen;
   child?: ChildProfile;
+  /** Everyone on this device, for "who's playing?". */
+  everyone: ChildProfile[];
+  /** A grown-up should save a backup: this device holds the only copy. */
+  backupDue: boolean;
+  /** The cheer on screen now. */
+  cheer?: StoredCheer;
   /** The day this data was loaded for. */
   enteredOn?: string;
   progress?: ChildProgress;
@@ -135,9 +152,11 @@ export interface GameState {
 }
 
 export function createGame(deps: GameDeps) {
-  const { speaker, play, now, after, progress: repo, children } = deps;
+  const { speaker, play, clip, now, after, progress: repo, children, family } = deps;
   const store = createStore<GameState>(() => ({
     screen: 'loading',
+    everyone: [],
+    backupDue: false,
     triedValues: [],
     mood: 'idle',
     todayDone: false,
@@ -199,6 +218,26 @@ export function createGame(deps: GameDeps) {
     save({ ...change, session: next });
   }
 
+  const challengeOffer = (): Speech => ({
+    key: get().child?.dailyGoal === 'quest+challenge' ? 'quest.challenge-goal' : 'quest.challenge',
+  });
+
+  /** Moves the grown-up's real-world goals, and says so if one was just reached. */
+  function moveGoals(unit: Goal['unit'], date: string): ProgressChange {
+    const data = need(get().progress);
+    const goals = advanceGoals(data.goals, unit, 1, date, now());
+    if (goals === data.goals) return {};
+    const reached = justReached(data.goals, goals).map((g) => ({
+      key: 'goal.reached',
+      params: { reward: g.rewardText },
+    }));
+    set({
+      progress: { ...data, goals },
+      celebration: [...get().celebration, ...reached],
+    });
+    return { goals };
+  }
+
   function present(run: QuestRun) {
     const item = currentItem(run);
     set({ feedback: undefined, triedValues: [], mood: 'idle' });
@@ -213,7 +252,7 @@ export function createGame(deps: GameDeps) {
               : 'quest.challenge-start',
       });
     } else if (run.stage === 'offer-challenge') {
-      speaker.say({ key: 'quest.challenge' });
+      speaker.say(challengeOffer());
     } else if (run.stage === 'worked-example' && item) {
       const { problem } = item;
       speaker.say(problem.speech, () => speaker.say(answerSpeech(problem)));
@@ -233,6 +272,7 @@ export function createGame(deps: GameDeps) {
       problemsCount: run.answered,
       correctCount: run.correct,
       coinsEarned: run.coins,
+      challengeDone: run.challengeDone,
       updatedAt: now(),
     };
     delete ended.run;
@@ -247,6 +287,9 @@ export function createGame(deps: GameDeps) {
         params: { badge: render(`badge.${id}`) },
       })),
       ...(allMissionsDone(get().missions) ? [{ key: 'mission.all-done' }] : []),
+      ...(run.challengeDone && get().child?.dailyGoal === 'quest+challenge'
+        ? [{ key: 'daily.met' }]
+        : []),
       // With a chest waiting, the goodbye comes after it's open.
       get().progress?.inventory.unopened.length ? { key: 'chest.tap' } : farewell,
     ];
@@ -307,11 +350,20 @@ export function createGame(deps: GameDeps) {
     set({
       child: done.child,
       progress: { ...data, ...bank, states: done.states },
-      celebration: done.events.map(eventLine).filter((l): l is Speech => l !== undefined),
+      celebration: [
+        ...state.celebration,
+        ...done.events.map(eventLine).filter((l): l is Speech => l !== undefined),
+      ],
       session: { ...need(state.session), completedQuest: true },
     });
+    const goals = {
+      ...moveGoals('quests', run.quest.date),
+      ...(done.events.some((e) => e.type === 'perfect-week')
+        ? moveGoals('perfect-weeks', run.quest.date)
+        : {}),
+    };
     const todaySkill = done.states[run.quest.todaySkillId];
-    return { child: done.child, skills: todaySkill ? [todaySkill] : [] };
+    return { child: done.child, skills: todaySkill ? [todaySkill] : [], ...goals };
   }
 
   /** Advances missions, pays any just finished, and banks the bonus chest for all three. */
@@ -435,26 +487,106 @@ export function createGame(deps: GameDeps) {
     const wallet = coins > 0 ? earnCoins(data.wallet, coins, at) : data.wallet;
     const cards = new Map(data.cards);
     if (card) cards.set(card.factId, card);
-    const earned = data.states[problem.skillId]?.masteredAt === undefined;
-    if (earned && states[problem.skillId]?.masteredAt !== undefined) {
-      set({ newBadges: [...state.newBadges, problem.skillId] });
-    }
+    const earned =
+      data.states[problem.skillId]?.masteredAt === undefined &&
+      states[problem.skillId]?.masteredAt !== undefined;
+    if (earned) set({ newBadges: [...state.newBadges, problem.skillId] });
     set({ progress: { ...data, states, cards, wallet } });
+    const goals = earned ? moveGoals('skills', run.quest.date) : {};
     const skills = Object.values(states).filter((s) => s !== undefined && s.updatedAt === at);
-    return { skills: skills as NonNullable<ProgressChange['skills']>, card, wallet };
+    return { skills: skills as NonNullable<ProgressChange['skills']>, card, wallet, ...goals };
   }
 
   const fastMsFor = (problem: Problem) =>
     GRADE_1_SKILLS.find((s) => s.id === problem.skillId)?.fastMs ?? 3000;
 
+  function beginQuest() {
+    const state = get();
+    if (state.run && state.session) {
+      const run = resumeRun(state.run);
+      set({ screen: 'quest' });
+      updateRun(run);
+      present(run);
+      return;
+    }
+    const child = need(state.child);
+    const data = need(state.progress);
+    const date = today();
+    const quest = buildDailyQuest({
+      childId: child.id,
+      today: date,
+      questsCompleted: child.questsCompleted,
+      skills: GRADE_1_SKILLS,
+      states: data.states,
+      factCards: [...data.cards.values()],
+    });
+    const run = startRun(quest);
+    const at = now();
+    const session: Session = {
+      id: crypto.randomUUID(),
+      childId: child.id,
+      startedAt: at,
+      date,
+      type: 'quest',
+      problemsCount: 0,
+      correctCount: 0,
+      coinsEarned: 0,
+      completedQuest: false,
+      run,
+      updatedAt: at,
+    };
+    set({ session, run, screen: 'quest', celebration: [], newBadges: [] });
+    save({ session });
+    present(run);
+  }
+
   const actions = {
     async open() {
-      const [first] = await children.list();
+      const everyone = await actions.loadEveryone();
+      const [first] = everyone;
       if (!first) {
         set({ screen: 'setup' });
         return;
       }
-      await actions.enter(first);
+      if (everyone.length > 1) set({ screen: 'who' });
+      else await actions.enter(first);
+    },
+
+    async loadEveryone() {
+      const everyone = (await children.list()).sort((a, b) => a.createdAt - b.createdAt);
+      set({ everyone });
+      return everyone;
+    },
+
+    /** Tapping your picture on Home: where brothers and sisters swap, and grown-ups come in. */
+    async showWho() {
+      play('tap');
+      await actions.loadEveryone();
+      set({ screen: 'who' });
+      speaker.say({ key: 'who.pick' });
+    },
+
+    async pick(child: ChildProfile) {
+      actions.unlockAudio();
+      await writes;
+      await actions.enter(child);
+    },
+
+    async openParent() {
+      play('tap');
+      speaker.say({ key: 'nav.grownups' });
+      await writes;
+      set({ screen: 'parent' });
+    },
+
+    /** The dashboard writes straight to storage, so everything here is read again. */
+    async closeParent() {
+      const everyone = await actions.loadEveryone();
+      const current = everyone.find((c) => c.id === get().child?.id);
+      if (!current) set({ child: undefined });
+      if (current && everyone.length === 1) await actions.enter(current);
+      else if (!current) await actions.open();
+      else set({ screen: 'who' });
     },
 
     async createChild(input: NewChild) {
@@ -472,12 +604,16 @@ export function createGame(deps: GameDeps) {
       const note = settled.events.map(eventLine).find((l) => l !== undefined);
       const session = sessions.find((s) => s.type === 'quest' && s.run);
       const missions = await repo.missionsOn(child.id, date);
+      const details = await family.get();
       set({
         child,
         enteredOn: date,
         missions,
         session: undefined,
         run: undefined,
+        cheer: undefined,
+        homeNote: undefined,
+        backupDue: backupDue(details, child.questsCompleted, at),
         progress: { ...data, states, streak: settled.streak },
         todayDone: sessions.some((s) => s.type === 'quest' && s.completedQuest && !s.run),
         screen: child.placedAt === undefined ? 'placement' : 'home',
@@ -485,6 +621,10 @@ export function createGame(deps: GameDeps) {
         ...(note ? { homeNote: note } : {}),
       });
       if (settled.streak !== data.streak) save({ streak: settled.streak });
+      // A grown-up's shield can finish a week from behind, when no quest is running.
+      if (settled.events.some((e) => e.type === 'perfect-week')) {
+        save(moveGoals('perfect-weeks', date));
+      }
       if (child.placedAt !== undefined) ensureMissions(date);
     },
 
@@ -593,44 +733,40 @@ export function createGame(deps: GameDeps) {
 
     startQuest() {
       actions.unlockAudio();
-      const state = get();
-      if (state.todayDone) return;
-      if (state.run && state.session) {
-        const run = resumeRun(state.run);
-        set({ screen: 'quest' });
-        updateRun(run);
-        present(run);
+      const { todayDone, progress: data } = get();
+      if (todayDone) return;
+      const cheer = data?.cheers[0];
+      if (!cheer) {
+        beginQuest();
         return;
       }
-      const child = need(state.child);
-      const data = need(state.progress);
-      const date = today();
-      const quest = buildDailyQuest({
-        childId: child.id,
-        today: date,
-        questsCompleted: child.questsCompleted,
-        skills: GRADE_1_SKILLS,
-        states: data.states,
-        factCards: [...data.cards.values()],
+      set({ cheer, screen: 'cheer', mood: 'cheer' });
+      actions.playCheer();
+    },
+
+    /** Runs inside the child's tap, because iOS blocks audio that starts any later. */
+    playCheer() {
+      const { cheer } = get();
+      if (!cheer) return;
+      speaker.stop();
+      clip.stop();
+      if (cheer.audio) clip.play(cheer.audio);
+      else speaker.say({ key: 'cheer.from' });
+    },
+
+    /** Marked as heard only here, so closing the app mid-cheer keeps it for next time. */
+    finishCheer() {
+      const { cheer, progress: data } = get();
+      clip.stop();
+      if (!cheer || !data) return;
+      const played = { ...cheer, playedAt: now(), updatedAt: now() };
+      set({
+        cheer: undefined,
+        progress: { ...data, cheers: data.cheers.filter((c) => c.id !== cheer.id) },
       });
-      const run = startRun(quest);
-      const at = now();
-      const session: Session = {
-        id: crypto.randomUUID(),
-        childId: child.id,
-        startedAt: at,
-        date,
-        type: 'quest',
-        problemsCount: 0,
-        correctCount: 0,
-        coinsEarned: 0,
-        completedQuest: false,
-        run,
-        updatedAt: at,
-      };
-      set({ session, run, screen: 'quest', celebration: [], newBadges: [] });
-      save({ session });
-      present(run);
+      save({ cheer: played });
+      play('tap');
+      beginQuest();
     },
 
     beginSection() {
@@ -729,7 +865,7 @@ export function createGame(deps: GameDeps) {
       if (placement) speaker.say(placement.problem.speech);
       else if (run?.stage === 'answering' && item) speaker.say(item.problem.speech);
       else if (run?.stage === 'worked-example' && item) speaker.say(item.problem.speech);
-      else if (run?.stage === 'offer-challenge') speaker.say({ key: 'quest.challenge' });
+      else if (run?.stage === 'offer-challenge') speaker.say(challengeOffer());
     },
 
     /** Leaving is free: the quest stays exactly where it is for later. */

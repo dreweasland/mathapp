@@ -117,6 +117,8 @@ export const STRINGS: Record<string, string> = {
   'quest.warmup': "Let's warm up!",
   'quest.skill': "Here's today's adventure.",
   'quest.challenge': 'Want a challenge? You can say yes or skip it.',
+  'quest.challenge-goal':
+    'Your goal today is the quest and the challenge. Ready? You can still skip it.',
   'quest.challenge-skip': 'No problem. Great work today!',
   'quest.challenge-start': 'Here comes the challenge!',
   'quest.coins': 'You earned {coins} coins!',
@@ -162,6 +164,17 @@ export const STRINGS: Record<string, string> = {
   'plant.seed': 'Do a quest and your plant will grow. Your best is {best}.',
   'shield.count': 'You have {count} shields. They keep your plant safe.',
   'certificate.days': 'You practiced {days} days in a row!',
+
+  // Grown-ups, goals and cheers
+  'nav.grownups': 'This part is for grown-ups.',
+  'who.pick': 'Who is playing? Tap your picture.',
+  'daily.met': "That's the quest and the challenge. You met your goal!",
+  'goal.quests': 'You did {done} of {target} quests. Then it is time for {reward}!',
+  'goal.perfect-weeks': 'You did {done} of {target} perfect weeks. Then it is time for {reward}!',
+  'goal.skills': 'You earned {done} of {target} badges. Then it is time for {reward}!',
+  'goal.ready': 'You did it! Time for {reward}! Go tell your grown-up.',
+  'goal.reached': 'You reached your goal! Time for {reward}! Go tell your grown-up.',
+  'cheer.from': 'A cheer from your grown-up!',
 
   // Missions
   'mission.in-a-row': 'Get {target} in a row.',

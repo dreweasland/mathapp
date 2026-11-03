@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { addGoalProgress, goalProgress, isReached, markDelivered } from './goals';
+import {
+  activeGoal,
+  addGoalProgress,
+  advanceGoals,
+  dailyGoalMet,
+  goalEnded,
+  goalProgress,
+  isReached,
+  justReached,
+  markDelivered,
+} from './goals';
 import type { Goal } from './state';
 
 const goal: Goal = {
@@ -51,5 +61,57 @@ describe('goals', () => {
   });
   it('the parent marks it delivered', () => {
     expect(markDelivered(goal, 2)).toMatchObject({ delivered: true, updatedAt: 2 });
+  });
+});
+
+describe('the goal on Home', () => {
+  const later = { ...goal, id: 'later', startDate: '2026-12-01', endDate: undefined };
+  const reached = { ...goal, id: 'reached', progress: 5 };
+
+  it('shows a reward still owed ahead of anything else, even after its window', () => {
+    expect(activeGoal([goal, reached], '2026-11-04')?.id).toBe('reached');
+    expect(activeGoal([reached], '2027-01-01')?.id).toBe('reached');
+  });
+  it('shows the goal in its window, and nothing before or after', () => {
+    expect(activeGoal([goal], '2026-11-04')?.id).toBe('g');
+    expect(activeGoal([goal], '2026-11-01')).toBeUndefined();
+    expect(activeGoal([goal], '2026-11-09')).toBeUndefined();
+    expect(activeGoal([later], '2026-11-04')).toBeUndefined();
+  });
+  it('drops a goal once the reward is delivered', () => {
+    expect(activeGoal([markDelivered(reached, 2)], '2026-11-04')).toBeUndefined();
+  });
+  it('calls a window that closed short "ended", never a reached goal', () => {
+    expect(goalEnded(goal, '2026-11-08')).toBe(false);
+    expect(goalEnded(goal, '2026-11-09')).toBe(true);
+    expect(goalEnded(reached, '2026-11-09')).toBe(false);
+    expect(goalEnded(later, '2030-01-01')).toBe(false);
+  });
+});
+
+describe('advanceGoals', () => {
+  it('moves every matching goal and reports the ones just finished', () => {
+    const almost = { ...goal, id: 'almost', progress: 4 };
+    const next = advanceGoals([goal, almost], 'quests', 1, '2026-11-03', 9);
+    expect(next.map((g) => g.progress)).toEqual([1, 5]);
+    expect(justReached([goal, almost], next).map((g) => g.id)).toEqual(['almost']);
+  });
+  it('keeps the same array when nothing moved, so nothing is saved', () => {
+    const goals = [goal];
+    expect(advanceGoals(goals, 'skills', 1, '2026-11-03', 9)).toBe(goals);
+    expect(advanceGoals(goals, 'quests', 1, '2026-12-25', 9)).toBe(goals);
+  });
+  it('does not report a goal finished earlier', () => {
+    const done = { ...goal, progress: 5 };
+    expect(justReached([done], [done])).toEqual([]);
+  });
+});
+
+describe('dailyGoalMet', () => {
+  it('needs the quest either way, and the challenge only when chosen', () => {
+    expect(dailyGoalMet('quest', true, false)).toBe(true);
+    expect(dailyGoalMet('quest', false, true)).toBe(false);
+    expect(dailyGoalMet('quest+challenge', true, false)).toBe(false);
+    expect(dailyGoalMet('quest+challenge', true, true)).toBe(true);
   });
 });

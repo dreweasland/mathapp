@@ -2,7 +2,13 @@
 
 A private, offline math practice app for a 6-year-old. The spec is `MATH_APP_BRIEF.md`, and `CLAUDE.md` holds the working rules and decisions.
 
-**Status:** Phases 0–3 are done: the installable shell, the full Grade 1 engine, the child's Daily Quest, and the engagement systems (growing plant, shields, missions, chests, collectibles, dressing up the bear, trophy wall, progress map). The parent dashboard comes next.
+**Status:** Phases 0–4 are done: the installable shell, the full Grade 1 engine, the child's Daily Quest, the engagement systems, and the PIN-gated parent dashboard with its teacher report. Phase 5 (Grades 2 and 3, free play, settings, reminders) comes next.
+
+## Grown-ups
+
+On Home, tap the child's picture, then the gear. The first visit asks a multiplication question and sets a 4-digit PIN.
+
+The dashboard shows the weekly recap, skills, the fact fluency grid, goals and cheers, the teacher report, children, and backup. All progress lives only on the device, so save a backup now and then. The app reminds you.
 
 ## Setup
 
@@ -36,7 +42,7 @@ The same child and date always give the same quest.
 ```
 npm test            unit tests
 npm run coverage    engine coverage, 90% minimum
-npm run e2e         plays full quests offline in iPhone WebKit and checks every layout
+npm run e2e         plays full quests offline in iPhone WebKit, checks every layout and the dashboard
 npm run lint
 npm run typecheck
 ```
@@ -54,4 +60,7 @@ Playwright only approximates Safari, so these need the real device:
 5. Tap through a whole quest in Airplane Mode. Prompts should be spoken and sounds should play.
 6. Flip the ring/silent switch to silent and try again. If speech or sound goes quiet, turn the switch back and keep the volume up during practice.
 7. Leave the app open overnight, then return to it. It should offer a new quest.
-8. Open a certificate on the trophy wall and tap print from the installed app. If nothing happens, that's a limit of the Home Screen app, so note it for Phase 4.
+8. Open a certificate on the trophy wall and tap print from the installed app. If nothing happens, that's a limit of the Home Screen app.
+9. In the dashboard, open Teacher report and tap Print. Then try Share or save, and print or email the file. One of the two has to work; note which.
+10. In Goals & cheers, record a voice message. Allow the microphone, listen back, and send it. Start the next quest: it should play right away, with the ring/silent switch both ways.
+11. In Backup, tap Save backup and save to Files. Delete the app, reinstall it, set it up, and restore the file. All progress and the voice message should return.
