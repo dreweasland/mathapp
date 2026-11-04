@@ -7,9 +7,13 @@ const BACKUP_EVERY_DAYS = 14;
 
 const blank = (): Family => ({ id: 'family', updatedAt: 0 });
 
-/** The nudge a parent sees, because an iPhone can lose this data and nothing else holds it. */
-export function backupDue(family: Family, quests: number, now: number): boolean {
+/**
+ * The nudge a parent sees, because an iPhone can lose this data and nothing else holds it.
+ * A recent sync means the cloud holds a copy, so the nudge waits.
+ */
+export function backupDue(family: Family, quests: number, now: number, syncedAt?: number): boolean {
   if (quests < BACKUP_AFTER_QUESTS) return false;
+  if (syncedAt !== undefined && now - syncedAt < BACKUP_EVERY_DAYS * DAY_MS) return false;
   return (
     family.lastBackupAt === undefined || now - family.lastBackupAt >= BACKUP_EVERY_DAYS * DAY_MS
   );

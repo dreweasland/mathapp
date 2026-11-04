@@ -285,10 +285,12 @@ describe('answering', () => {
   });
 
   it('wrong is a gentle "not yet", never a buzzer, and offers a second try', () => {
+    const before = env.said.length;
     env.game.actions.answer('999');
     expect(env.sounds.at(-1)).toBe('not-yet');
     expect(env.state().feedback?.kind).toBe('retry');
-    expect(env.said.at(-1)?.key).toBe('feedback.retry');
+    // Some problems then add a clue or ask again, after the retry line.
+    expect(env.said[before]?.key).toBe('feedback.retry');
     expect(env.state().triedValues).toEqual(['999']);
   });
 

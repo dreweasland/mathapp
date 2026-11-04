@@ -11,6 +11,7 @@ import {
   type Session,
 } from '@mathapp/engine';
 import type { AppDb, StoredCheer } from '../db';
+import { deleteRows } from '../tombstones';
 import { childrenRepository, type NewChild } from './children';
 import { progressRepository, type ChildProgress } from './progress';
 
@@ -25,25 +26,38 @@ export interface Dashboard {
 }
 
 /** Every table that holds a child's data, apart from the profile itself. */
-const childTables = (db: AppDb) => [
-  db.skillStates,
-  db.factCards,
-  db.attempts,
-  db.sessions,
-  db.streaks,
-  db.wallets,
-  db.inventories,
-  db.missions,
-  db.goals,
-  db.cheers,
-];
+const CHILD_TABLES = [
+  'skillStates',
+  'factCards',
+  'attempts',
+  'sessions',
+  'streaks',
+  'wallets',
+  'inventories',
+  'missions',
+  'goals',
+  'cheers',
+] as const;
+const childTables = (db: AppDb) => [...CHILD_TABLES.map((t) => db.table(t)), db.tombstones];
 
 export function parentRepository(db: AppDb, now: () => number = Date.now) {
   const children = childrenRepository(db, now);
   const progress = progressRepository(db);
 
-  const clearProgress = (childId: string) =>
-    Promise.all(childTables(db).map((t) => t.where('childId').equals(childId).delete()));
+  const clearProgress = async (childId: string) => {
+    const at = now();
+    for (const table of CHILD_TABLES) {
+      const rows = await db.table(table).where('childId').equals(childId).toArray();
+      await deleteRows(db, table, rows, at);
+    }
+  };
+
+  /** One row, deleted here and, through sync, everywhere. */
+  const deleteOne = (table: 'goals' | 'cheers', id: string) =>
+    db.transaction('rw', db.table(table), db.tombstones, async () => {
+      const row = await db.table(table).get(id);
+      if (row) await deleteRows(db, table, [row], now());
+    });
 
   return {
     children: async () => (await children.list()).sort((a, b) => a.createdAt - b.createdAt),
@@ -100,11 +114,11 @@ export function parentRepository(db: AppDb, now: () => number = Date.now) {
       await db.goals.put(markDelivered(goal, now()));
     },
 
-    removeGoal: (id: string) => db.goals.delete(id),
+    removeGoal: (id: string) => deleteOne('goals', id),
 
     addCheer: (cheer: StoredCheer) => db.cheers.put(cheer),
 
-    removeCheer: (id: string) => db.cheers.delete(id),
+    removeCheer: (id: string) => deleteOne('cheers', id),
 
     /** Keeps the name and picture, and sends the child back through placement. */
     async resetChild(child: ChildProfile) {
@@ -119,7 +133,8 @@ export function parentRepository(db: AppDb, now: () => number = Date.now) {
     async removeChild(childId: string) {
       await db.transaction('rw', [...childTables(db), db.children], async () => {
         await clearProgress(childId);
-        await db.children.delete(childId);
+        const child = await db.children.get(childId);
+        if (child) await deleteRows(db, 'children', [child], now());
       });
     },
   };

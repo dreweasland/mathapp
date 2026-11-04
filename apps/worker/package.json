@@ -1,0 +1,15 @@
+{
+  "name": "@mathapp/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./protocol": "./src/protocol.ts",
+    "./api": "./src/api.ts",
+    "./testing": "./src/testing/memoryDb.ts",
+    "./db": "./src/db.ts"
+  },
+  "dependencies": {
+    "@mathapp/engine": "*"
+  }
+}

@@ -215,3 +215,42 @@ export async function playUntilBreak(page: Page) {
   }
   throw new Error('Quest did not finish');
 }
+
+export const PIN = ['1', '2', '3', '4'];
+
+export async function tapPin(page: Page, digits: string[]) {
+  const pad = page.getByTestId('pin-pad');
+  for (const digit of digits) await pad.getByRole('button', { name: digit, exact: true }).click();
+}
+
+/** Answers the grown-up question shown on screen, then sets the PIN. */
+export async function createPin(page: Page) {
+  const question = await page.getByText(/What is \d+ × \d+\?/).textContent();
+  const [, a, b] = /(\d+) × (\d+)/.exec(question ?? '') as RegExpExecArray;
+  await tapPin(page, String(Number(a) * Number(b)).split(''));
+  await expect(page.getByRole('heading', { name: 'Make a 4-digit PIN' })).toBeVisible();
+  await tapPin(page, PIN);
+  await expect(page.getByRole('heading', { name: 'Enter it again' })).toBeVisible();
+  await tapPin(page, PIN);
+}
+
+export async function openGate(page: Page) {
+  await page.getByRole('button', { name: 'Sam' }).click();
+  await page.getByRole('button', { name: 'grown-ups' }).click();
+}
+
+export async function openDashboard(page: Page) {
+  await openGate(page);
+  await createPin(page);
+  await expect(page.getByTestId('parent')).toBeVisible();
+}
+
+export async function finishQuest(page: Page) {
+  await page.getByRole('button', { name: 'start quest' }).click();
+  await playUntilBreak(page);
+  const skip = page.getByRole('button', { name: "I'm done" });
+  if (await skip.isVisible()) await skip.click();
+  await expect(page.getByTestId('celebrate')).toBeVisible();
+  await openChests(page);
+  await page.getByRole('button', { name: 'home' }).click();
+}

@@ -13,6 +13,7 @@
     "@fontsource-variable/nunito": "5.3.0",
     "@mathapp/content": "*",
     "@mathapp/engine": "*",
+    "@mathapp/worker": "*",
     "dexie": "^4.4.7",
     "framer-motion": "^14.9.0",
     "react": "^19.3.1",

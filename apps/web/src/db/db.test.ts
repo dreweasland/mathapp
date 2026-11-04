@@ -15,9 +15,9 @@ afterEach(async () => {
 });
 
 describe('schema', () => {
-  it('has all 12 tables at version 2', async () => {
+  it('has all 14 tables at version 3', async () => {
     await db.open();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     expect(db.tables.map((t) => t.name).sort()).toEqual(
       [
         'attempts',
@@ -31,14 +31,16 @@ describe('schema', () => {
         'sessions',
         'skillStates',
         'streaks',
+        'syncState',
+        'tombstones',
         'wallets',
       ].sort(),
     );
   });
 
-  it('every table indexes updatedAt for the later sync layer', async () => {
+  it('every synced table indexes updatedAt', async () => {
     await db.open();
-    for (const table of db.tables) {
+    for (const table of db.tables.filter((t) => t.name !== 'syncState')) {
       expect(
         table.schema.indexes.map((i) => i.name),
         table.name,
@@ -139,7 +141,7 @@ describe('upgrading a device', () => {
 
     const upgraded = new AppDb(name);
     await upgraded.open();
-    expect(upgraded.verno).toBe(2);
+    expect(upgraded.verno).toBe(3);
     expect((await upgraded.children.get('a'))?.name).toBe('Sam');
     expect((await upgraded.streaks.get('a'))?.current).toBe(9);
     expect(await upgraded.family.get('family')).toBeUndefined();

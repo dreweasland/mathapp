@@ -8,7 +8,8 @@ A local-first math practice PWA for a 6-year-old. `MATH_APP_BRIEF.md` is the pro
 - `apps/web`: React + Vite, `vite-plugin-pwa`, Tailwind, Dexie (IndexedDB), Zustand (game state), Framer Motion (celebration only). Sound effects are synthesized with Web Audio; speech uses the Web Speech API.
 - `packages/engine`: pure logic with **zero runtime dependencies** and no React.
 - `packages/content`: skill metadata and speech strings. Depends only on the engine's types.
-- Tests: Vitest (unit, plus Testing Library for components), Playwright on WebKit with an iPhone profile (e2e). No backend in MVP.
+- `apps/worker`: the Cloudflare Worker for Phase 6 sync: plain `fetch` handler, D1 (SQLite), no framework. Its tests run the same SQL on `node:sqlite`.
+- Tests: Vitest (unit, plus Testing Library for components), Playwright on WebKit with an iPhone profile (e2e).
 
 ## Folder layout
 
@@ -23,9 +24,11 @@ apps/web/                  PWA shell
                            icons.tsx (the drawn icon set), Avatar.tsx, BearSays.tsx (the bear's speech bubble)
   src/game/art.tsx         a drawn icon per skill, for the map, trophies and free play
   src/screens/             Setup, Who, Placement, Home, Cheer, Quest, Celebrate, ChestReveal, Map, Trophies, Stickers, Shop, Free, Blitz
-  src/parent/              grown-ups' area, lazy-loaded: PinGate, ParentApp, pages/, reportDoc (teacher report)
+  src/parent/              grown-ups' area, lazy-loaded: PinGate, ParentApp, pages/, reportDoc (teacher report), SyncPanel
+  src/sync/                cloud sync client: crypto.ts (end-to-end encryption), client.ts (pull, merge, push), api.ts, recap.ts
   src/gallery.tsx          dev-only page of any problem, for layout tests; never in the build
-  e2e/                     Playwright: offline, quest, layout, rewards, parent, free
+  e2e/                     Playwright: offline, quest, layout, rewards, parent, free, sync (the real Worker in-process)
+apps/worker/src/           api.ts (routes), db.ts (schema, made on first use), recap.ts (emails, hourly cron), protocol.ts (shared types)
 packages/engine/src/
   rng.ts dates.ts          seeded RNG, date-string helpers
   types.ts                 shared types
@@ -33,6 +36,7 @@ packages/engine/src/
   mastery difficulty frontier placement factDeck    adaptive logic
   streak wallet goals missions quest rewards        daily loop logic
   report free              dashboard and teacher-report numbers; practice and Fact Blitz
+  sync                     merging two devices' copies of a row without losing anything earned
   questRun                 tries, sections, end-on-win, resume, scoring (pure; the store just calls it)
   audit.test.ts            independent answer-key audit
 packages/content/src/      grade1-3.ts and skills.ts (ALL_SKILLS), collectibles.ts (sets, shop, prices), strings.en.ts (speech and praise), answerSpeech.ts
@@ -51,11 +55,11 @@ npm run demo         print a Daily Quest (see README for options)
 npm run lint         ESLint + Prettier
 npm run typecheck    tsc across all workspaces
 npm run dev          dev server
-npm run serve        build, then serve it as Cloudflare will (wrangler dev)
+npm run serve        build, then serve it as Cloudflare will (wrangler dev); add `-- --var DEV_MAIL:log` to print sign-in codes
 npm run deploy       build and deploy to Cloudflare (normally Workers Builds does this on push to main)
 ```
 
-Hosting: a Cloudflare Worker with static assets only (`wrangler.jsonc`, headers in `apps/web/public/_headers`). No Worker script, no analytics. Deploys come from Cloudflare Workers Builds, not GitHub Actions; CI only tests.
+Hosting: one Cloudflare Worker (`wrangler.jsonc`, headers in `apps/web/public/_headers`). Static assets are served without running code; only `/api/*` reaches the script (`run_worker_first`). D1 database `mathapp-sync` (id in `wrangler.jsonc`); hourly cron for recap emails; secrets `RESEND_API_KEY` and `MAIL_FROM`. No analytics, observability off. Deploys come from Cloudflare Workers Builds, not GitHub Actions; CI only tests.
 
 ## Decisions that override the brief
 
@@ -120,6 +124,12 @@ Agreed with the parent before Phase 0.
 - **One font:** Nunito, bundled (Latin only, 39 KB), so it looks the same on every device and works offline.
 - **Performance:** only Home and the quest load up front. Everything else is lazy and precached, so offline still works.
 - **Acceptance:** Lighthouse has no PWA score since v12. Use a manual install/offline checklist plus accessibility ≥ 90.
+- **Phase 6 on Cloudflare, not AWS:** the brief's Cognito, DynamoDB, CloudFront/S3 and CDK became a Worker, D1 and Resend, since hosting was already a Worker. Same account, same deploy on push.
+- **Sync sign-in:** a 6-digit code emailed through Resend (10 minutes, 5 tries, 5 codes an hour per address). Sessions are random tokens stored hashed, kept until signed out. The PIN still guards the dashboard; Setup can sign in without one because the email code is the guard there.
+- **End-to-end encryption:** a random 32-byte family key, wrapped with the grown-up's passphrase (PBKDF2-SHA256, 600,000 rounds) and stored on the server only wrapped. HKDF splits it into an AES-GCM key for rows and an HMAC key for record ids, so the server sees neither content nor which child or table a row is. A forgotten passphrase can't be recovered; "start over" replaces the cloud copy from one device and the others rejoin.
+- **Merging:** the server keeps each record's latest `updatedAt` and returns any newer copy to a device that pushed an older one. The device merges in `engine/sync.ts`: the newer row wins, then never-lose rules apply (wallet keeps the larger lifetime and the larger amount spent, items union, sticky badge/unlock/placement times, best and counted days, finished quests, mission and goal progress, heard cheers). Deletions travel as encrypted tombstones; a row changed after its deletion survives.
+- **When sync runs:** after saves land, on opening, after a quest or practice, on returning to the app (at most once a minute) and on leaving the dashboard. Never in a tap. New data shows at once only on Home or "who's playing?"; otherwise at the next load.
+- **Weekly recap email:** opt-in. The device uploads this week's totals, streak, new badge names and first names, readable, so the server can write the email; turning it off deletes them. Sent at the first hourly run after Sunday 6pm in the family's time zone. With sync on and synced in the last 14 days, the backup reminder waits.
 
 ## How the quest UI works
 

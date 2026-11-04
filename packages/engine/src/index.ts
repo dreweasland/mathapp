@@ -20,3 +20,4 @@ export * from './rewards';
 export * from './free';
 export { formatTime } from './problem';
 export * from './report';
+export * from './sync';

@@ -30,6 +30,33 @@ export interface Family {
   updatedAt: number;
 }
 
+/** A row deleted on this device, so sync can delete it on the others. */
+export interface Tombstone {
+  /** `${table}|${key}`. */
+  id: string;
+  table: string;
+  key: string;
+  updatedAt: number;
+}
+
+/** This device's link to cloud sync. Never in a backup. */
+export interface SyncState {
+  id: 'sync';
+  email?: string;
+  token?: string;
+  /** The family key, opened with the passphrase on this device. */
+  familyKey?: ArrayBuffer;
+  /** The wrapped key as the server had it, so a key replaced elsewhere is noticed. */
+  wrapped?: string;
+  /** Highest server position pulled. */
+  cursor: number;
+  /** Local rows changed at or after this time still need pushing. */
+  pushFrom: number;
+  lastSyncedAt?: number;
+  recap: boolean;
+  updatedAt: number;
+}
+
 /**
  * The only place that knows the IndexedDB schema.
  *
@@ -50,6 +77,8 @@ export class AppDb extends Dexie {
   goals!: EntityTable<Goal, 'id'>;
   cheers!: EntityTable<StoredCheer, 'id'>;
   family!: EntityTable<Family, 'id'>;
+  tombstones!: EntityTable<Tombstone, 'id'>;
+  syncState!: EntityTable<SyncState, 'id'>;
 
   constructor(name = 'mathapp') {
     super(name);
@@ -67,6 +96,7 @@ export class AppDb extends Dexie {
       cheers: 'id, childId, updatedAt',
     });
     this.version(2).stores({ family: 'id, updatedAt' });
+    this.version(3).stores({ tombstones: 'id, updatedAt', syncState: 'id' });
   }
 }
 

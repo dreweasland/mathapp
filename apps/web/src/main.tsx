@@ -12,6 +12,7 @@ import { familyRepository } from './db/repositories/family';
 import { progressRepository } from './db/repositories/progress';
 import { GameProvider } from './game/GameProvider';
 import { createGame } from './game/store';
+import { sync } from './sync/instance';
 import './index.css';
 
 registerSW({ immediate: true });
@@ -27,6 +28,7 @@ const game = createGame({
   clip: createClipPlayer(),
   now: Date.now,
   after: (ms, run) => setTimeout(run, ms),
+  sync,
 });
 
 createRoot(document.getElementById('root') as HTMLElement).render(

@@ -29,8 +29,8 @@ export function Data({ today, services, reload }: PageProps) {
       <section className="p-card flex flex-col gap-2" data-testid="backup">
         <h2 className="font-extrabold">Save a backup</h2>
         <p className="text-sm">
-          All progress lives only on this device. A backup is one file with every child's progress,
-          and it stays private unless you share it. Your PIN isn't in it.
+          Without cloud sync, all progress lives only on this device. A backup is one file with
+          every child's progress, and it stays private unless you share it. Your PIN isn't in it.
         </p>
         <p className="text-sm">
           {lastBackup === undefined

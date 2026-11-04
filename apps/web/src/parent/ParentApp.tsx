@@ -10,6 +10,7 @@ import { Overview } from './pages/Overview';
 import { Report } from './pages/Report';
 import { Settings } from './pages/Settings';
 import { Skills } from './pages/Skills';
+import { SyncPanel } from './SyncPanel';
 import type { ParentServices } from './services';
 import { AvatarName } from '../ui/Avatar';
 
@@ -20,6 +21,7 @@ const PAGES = [
   { id: 'report', label: 'Teacher report', hint: 'One printable page' },
   { id: 'children', label: 'Children', hint: 'Edit, add, or start over' },
   { id: 'settings', label: 'Settings', hint: 'Voice, hand, motion, colors, math time' },
+  { id: 'sync', label: 'Sync & weekly email', hint: 'Same progress on every device' },
   { id: 'data', label: 'Backup', hint: 'Save or restore all progress' },
 ] as const;
 
@@ -114,6 +116,9 @@ export function ParentApp({ services, onExit }: { services: ParentServices; onEx
         {page === 'report' && <Report {...shared} />}
         {page === 'children' && <Children {...shared} everyone={children} />}
         {page === 'settings' && <Settings key={view.child.id} {...shared} />}
+        {page === 'sync' && services.sync && (
+          <SyncPanel sync={services.sync} now={now} onChanged={() => reload()} />
+        )}
         {page === 'data' && <Data {...shared} />}
       </div>
     </main>

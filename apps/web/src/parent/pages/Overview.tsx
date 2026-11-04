@@ -35,9 +35,9 @@ export function Overview({ view, today, services, reload }: PageProps) {
   const { streak, states } = progress;
   const [needsBackup, setNeedsBackup] = useState(false);
   useEffect(() => {
-    void services.family
-      .get()
-      .then((f) => setNeedsBackup(backupDue(f, child.questsCompleted, services.now())));
+    void Promise.all([services.family.get(), services.sync?.lastSyncedAt()]).then(([f, synced]) =>
+      setNeedsBackup(backupDue(f, child.questsCompleted, services.now(), synced)),
+    );
   }, [services, child.questsCompleted]);
 
   const week = weekStart(today);

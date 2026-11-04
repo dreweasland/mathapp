@@ -62,7 +62,7 @@ export function Setup({
     grade: ChildProfile['grade'],
   ) => void;
   /** Loaded only if asked for, since most setups have nothing to bring. */
-  restore: ReactNode;
+  restore: (back: () => void) => ReactNode;
 }) {
   const [skipped, setSkipped] = useState(false);
   const [name, setName] = useState('');
@@ -71,7 +71,7 @@ export function Setup({
   const [restoring, setRestoring] = useState(false);
   const [grade, setGrade] = useState<ChildProfile['grade']>(1);
   if (needsInstall() && !skipped) return <InstallSteps onSkip={() => setSkipped(true)} />;
-  if (restoring) return restore;
+  if (restoring) return restore(() => setRestoring(false));
   return (
     <main className="screen items-center justify-center-safe overflow-y-auto text-center select-text">
       <h1 className="text-4xl font-extrabold">{APP_NAME}</h1>
@@ -135,7 +135,7 @@ export function Setup({
         Done
       </button>
       <button type="button" className="p-link" onClick={() => setRestoring(true)}>
-        Moving from another device? Restore a backup
+        Moving from another device? Sync or restore
       </button>
     </main>
   );

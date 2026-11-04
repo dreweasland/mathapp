@@ -1,56 +1,21 @@
 import { devices, expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import {
-  openChests,
+  PIN,
+  createPin,
+  finishQuest,
+  openDashboard,
+  openGate,
   patchRow,
-  playUntilBreak,
   said,
   setUpChild,
   stubSpeech,
+  tapPin,
   waitForServiceWorker,
 } from './helpers';
 
-const PIN = ['1', '2', '3', '4'];
 const BASE = 'http://localhost:4173';
-
-async function tapPin(page: Page, digits: string[]) {
-  const pad = page.getByTestId('pin-pad');
-  for (const digit of digits) await pad.getByRole('button', { name: digit, exact: true }).click();
-}
-
-/** Answers the grown-up question shown on screen, then sets the PIN. */
-async function createPin(page: Page) {
-  const question = await page.getByText(/What is \d+ × \d+\?/).textContent();
-  const [, a, b] = /(\d+) × (\d+)/.exec(question ?? '') as RegExpExecArray;
-  await tapPin(page, String(Number(a) * Number(b)).split(''));
-  await expect(page.getByRole('heading', { name: 'Make a 4-digit PIN' })).toBeVisible();
-  await tapPin(page, PIN);
-  await expect(page.getByRole('heading', { name: 'Enter it again' })).toBeVisible();
-  await tapPin(page, PIN);
-}
-
-async function openGate(page: Page) {
-  await page.getByRole('button', { name: 'Sam' }).click();
-  await page.getByRole('button', { name: 'grown-ups' }).click();
-}
-
-async function openDashboard(page: Page) {
-  await openGate(page);
-  await createPin(page);
-  await expect(page.getByTestId('parent')).toBeVisible();
-}
-
 const leave = (page: Page) => page.getByRole('button', { name: 'Done' }).click();
-
-async function finishQuest(page: Page) {
-  await page.getByRole('button', { name: 'start quest' }).click();
-  await playUntilBreak(page);
-  const skip = page.getByRole('button', { name: "I'm done" });
-  if (await skip.isVisible()) await skip.click();
-  await expect(page.getByTestId('celebrate')).toBeVisible();
-  await openChests(page);
-  await page.getByRole('button', { name: 'home' }).click();
-}
 
 test.beforeEach(async ({ page }) => {
   await stubSpeech(page);
@@ -363,7 +328,7 @@ test('a new phone restores from Setup, with no fake child first', async ({ page,
   await stubSpeech(fresh);
   await fresh.goto('/');
   await fresh.getByRole('button', { name: 'Continue in Safari for now' }).click();
-  await fresh.getByRole('button', { name: /Restore a backup/ }).click();
+  await fresh.getByRole('button', { name: /Moving from another device/ }).click();
   await fresh.getByLabel('Choose a backup file').setInputFiles({
     name: 'backup.json',
     mimeType: 'application/json',

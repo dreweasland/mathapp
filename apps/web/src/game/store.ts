@@ -128,6 +128,11 @@ export interface GameDeps {
   now: () => number;
   /** Replaced in tests so nothing waits on real time. */
   after: (ms: number, run: () => void) => void;
+  /** Cloud sync, when a grown-up has turned it on. Runs in the background, never in a tap. */
+  sync?: {
+    run(): Promise<{ changed: boolean }>;
+    lastSyncedAt(): Promise<number | undefined>;
+  };
 }
 
 export interface BlitzRun {
@@ -239,6 +244,31 @@ export function createGame(deps: GameDeps) {
         set({ saveFailed: true });
       });
   };
+
+  /**
+   * Syncs after saves land, at quiet moments: opening, the end of a quest or practice, and
+   * leaving the grown-ups' area. Anything it brought in shows the next time Home or "who's
+   * playing?" loads, or right away if that's the screen now.
+   */
+  let syncStartedAt = -Infinity;
+  function backgroundSync(minGapMs = 0) {
+    const cloud = deps.sync;
+    if (!cloud || now() - syncStartedAt < minGapMs) return;
+    syncStartedAt = now();
+    void writes
+      .then(() => cloud.run())
+      .then(async ({ changed }) => {
+        if (!changed) return;
+        const { screen, child, tour } = get();
+        if (screen === 'setup') await actions.open();
+        else if (screen === 'who') await actions.loadEveryone();
+        else if (screen === 'home' && child && tour === undefined) {
+          const fresh = await children.get(child.id);
+          if (fresh) await actions.enter(fresh);
+        }
+      })
+      .catch((error) => console.error(error));
+  }
 
   /** The response clock starts when the prompt finishes, so listening isn't counted. */
   let shownAt = 0;
@@ -353,6 +383,7 @@ export function createGame(deps: GameDeps) {
     set({ screen: 'free-done', mood: 'cheer', feedback: undefined, badgeShow: get().newBadges });
     play('cheer');
     sayInOrder([...badgeLines(get().newBadges), line]);
+    backgroundSync();
   }
 
   function badgeLines(ids: string[]): Speech[] {
@@ -401,6 +432,7 @@ export function createGame(deps: GameDeps) {
     });
     play('cheer');
     sayInOrder(lines);
+    backgroundSync();
   }
 
   /** Hints that are words as well as a picture get read out, for a child who can't read them. */
@@ -663,12 +695,10 @@ export function createGame(deps: GameDeps) {
     async open() {
       const everyone = await actions.loadEveryone();
       const [first] = everyone;
-      if (!first) {
-        set({ screen: 'setup' });
-        return;
-      }
-      if (everyone.length > 1) set({ screen: 'who' });
+      if (!first) set({ screen: 'setup' });
+      else if (everyone.length > 1) set({ screen: 'who' });
       else await actions.enter(first);
+      backgroundSync(60_000);
     },
 
     async loadEveryone() {
@@ -700,6 +730,7 @@ export function createGame(deps: GameDeps) {
 
     /** The dashboard writes straight to storage, so everything here is read again. */
     async closeParent() {
+      backgroundSync();
       const everyone = await actions.loadEveryone();
       const current = everyone.find((c) => c.id === get().child?.id);
       if (!current) set({ child: undefined });
@@ -737,7 +768,7 @@ export function createGame(deps: GameDeps) {
       const note = settled.events.map(eventLine).find((l) => l !== undefined);
       const session = sessions.find((s) => s.type === 'quest' && s.run);
       const missions = await repo.missionsOn(child.id, date);
-      const details = await family.get();
+      const [details, syncedAt] = await Promise.all([family.get(), deps.sync?.lastSyncedAt()]);
       set({
         child,
         enteredOn: date,
@@ -747,7 +778,7 @@ export function createGame(deps: GameDeps) {
         cheer: undefined,
         homeNote: undefined,
         badgeShow: [],
-        backupDue: backupDue(details, child.questsCompleted, at),
+        backupDue: backupDue(details, child.questsCompleted, at, syncedAt),
         progress: { ...data, states, streak: settled.streak },
         todayDone: sessions.some((s) => s.type === 'quest' && s.completedQuest && !s.run),
         screen: child.placedAt === undefined ? 'placement' : 'home',
@@ -1241,6 +1272,7 @@ export function createGame(deps: GameDeps) {
 
     /** An installed app can sit in memory overnight, so a new day must be noticed on return. */
     async checkNewDay() {
+      backgroundSync(60_000);
       const { child, screen, enteredOn } = get();
       if (!child || enteredOn === today()) return;
       if (screen !== 'home' && screen !== 'celebrate') return;

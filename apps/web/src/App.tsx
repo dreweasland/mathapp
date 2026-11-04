@@ -59,11 +59,11 @@ function Screen() {
           onDone={(name, avatar, dailyGoal, grade) =>
             void actions.createChild({ name, avatar, dailyGoal, grade })
           }
-          restore={
+          restore={(back) => (
             <Suspense fallback={null}>
-              <SetupRestore onRestored={() => void actions.open()} />
+              <SetupRestore onRestored={() => void actions.open()} onBack={back} />
             </Suspense>
-          }
+          )}
         />
       );
     case 'who':
